@@ -37,6 +37,13 @@ class Callback():
         pass
     def on_run_end(self, **kwargs:Any)->None:
         pass
+    def on_cancel_run(self, **kwargs:Any)->None:
+        pass
+    def on_cancel_evol(self, **kwargs:Any)->None:
+        pass
+    def on_cancel_fitness(self, **kwargs:Any)->None:
+        pass
+
 
 def _get_init_state(): return dict(gen=0, evals=0, bests=[])
 
@@ -65,7 +72,6 @@ class CallbackHandler():
         self('run_begin')
 
     def on_gen_begin(self, **kwargs:Any)->None:
-        self.state_dict['stop_run'] = False
         self('gen_begin')
 
     def on_evol_all_begin(self, **kwargs:Any)->None:
@@ -83,7 +89,6 @@ class CallbackHandler():
     def on_fitness_one_end(self, **kwargs:Any)->None:
         self('fitness_one_end')
         self.state_dict['evals'] += 1
-        return self.state_dict['stop_run']
 
     def on_fitness_all_end(self, **kwargs:Any)->None:
         self('fitness_all_end')
@@ -97,10 +102,24 @@ class CallbackHandler():
     def on_gen_end(self, **kwargs:Any)->None:
         self('gen_end')
         self.state_dict['gen'] += 1
-        return self.state_dict['stop_run']
 
     def on_run_end(self, **kwargs:Any)->None:
         self('run_end')
 
+    def on_cancel_run(self, **kwargs:Any)->None:
+        self('cancel_run')
+
+    def on_cancel_evol(self, **kwargs:Any)->None:
+        self('cancel_evol')
+
+    def on_cancel_fitness(self, **kwargs:Any)->None:
+        self('cancel_fitness')
+
 class Recorder(Callback):
     pass
+
+class CancelRunException(Exception): pass
+class CancelGenException(Exception): pass
+class CancelEvolException(Exception): pass
+class CancelFitnessException(Exception): pass
+

@@ -71,19 +71,21 @@ class Optimization:
         return (idx, self.bests[idx])
 
     def eval_fitness(self, pbar=None):
-        self.cb_handler.on_fitness_all_begin()
-        for indiv in progress_bar(self.population, parent=pbar):
-            self.cb_handler.on_fitness_one_begin()
-            if self.max_eval is not None: # remove later
-                if self.evals >= self.max_eval: break
+        try:
+            self.cb_handler.on_fitness_all_begin()
+            for indiv in progress_bar(self.population, parent=pbar):
+                self.cb_handler.on_fitness_one_begin()
+                if self.max_eval is not None: # remove later
+                    if self.evals >= self.max_eval: break
 
-            self.get_fitness(indiv)
-            if self.cb_handler.on_fitness_one_end(): break
-            indiv.gen = self.gen # needs modification
-            self.evals += 1 # remove later
+                self.get_fitness(indiv)
+                self.cb_handler.on_fitness_one_end()
+                indiv.gen = self.gen # needs modification ex: self.cb_handler.state_dict['gen']
+                self.evals += 1 # remove later
 
-        self.bests.append(self.get_best().fitness_value) # should be on recorder
-        self.cb_handler.on_fitness_all_end()
+            self.bests.append(self.get_best().fitness_value) # should be on recorder
+        except CancelFitnessException: self.cb_handler.on_fitness_cancel()
+        finally: self.cb_handler.on_fitness_all_end()
 
     def evolve_one(self, idx):
         res = 0
@@ -100,13 +102,16 @@ class Optimization:
             indiv.data[picked_dims] = new_data.clip(indiv.lower_limit, indiv.upper_limit)
 
     def evolve_all(self):
-        self.cb_handler.on_evol_all_begin()
-        for i in range(len(self.population)):
-            self.cb_handler.on_evol_one_begin()
-            self.evolve_one(i)
-            self.cb_handler.on_evol_one_end()
+        try:
+            self.cb_handler.on_evol_all_begin()
+            for i in range(len(self.population)):
+                self.cb_handler.on_evol_one_begin()
+                self.evolve_one(i)
+                self.cb_handler.on_evol_one_end()
 
-        self.cb_handler.on_evol_all_end()
+        except CancelEvolException: self.cb_handler.on_cancel_evol()
+        finally: self.cb_handler.on_evol_all_end()
+
 
     def get_best(self):
         idx = np.argmin([e.fitness_value for e in self.population])
@@ -120,16 +125,17 @@ class Optimization:
     def run(self, generations=100, show_graph=True, update_each=10, **kwargs):
         pbar = master_bar(range(generations))
         pbar.names = self.metrics
-        self.cb_handler.on_run_begin(generations)
-        for gen in pbar:
-            self.cb_handler.on_gen_begin()
-            self.run_one_gen(pbar=pbar)
-            if show_graph and (gen+1)%update_each==0: pbar.update_graph(self._get_plot_data(), **kwargs)
-            if self.cb_handler.on_gen_end(): break
-        else:
-            if show_graph: pbar.update_graph(self._get_plot_data(), **kwargs)
-
-        self.cb_handler.on_run_end()
+        try:
+            self.cb_handler.on_run_begin(generations)
+            for gen in pbar:
+                self.cb_handler.on_gen_begin()
+                self.run_one_gen(pbar=pbar)
+                if show_graph and (gen+1)%update_each==0: pbar.update_graph(self._get_plot_data(), **kwargs)
+                self.cb_handler.on_gen_end()
+            else:
+                if show_graph: pbar.update_graph(self._get_plot_data(), **kwargs)
+        except CancelRunException: self.cb_handler.on_cancel_run()
+        finally: self.cb_handler.on_run_end()
 
     def _get_plot_data(self): # should be on recorder
         x = np.arange(len(self.bests))
@@ -138,7 +144,8 @@ class Optimization:
     def plot(self, ax=None, alpha=0.75, size=100, color='green', figsize=(8,5)): # should be on recorder
         if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
         for g,n in zip(self._get_plot_data(),self.metrics): ax.plot(*g, alpha=alpha, label=n)
-        ax.scatter(*self.best_with_idx, s=size, c=color)
+        idx,best = self.best_with_idx
+        ax.scatter(idx, best, s=size, c=color)
         ax.legend(loc='upper right')
-        ax.set_title(f'Best fitness value: {self.best:.2f}')
+        ax.set_title(f'Best fitness value: {best:.2f}\nGeneration: {idx}')
 
