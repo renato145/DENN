@@ -47,48 +47,38 @@ class Population:
 class Optimization:
     population:Population
     get_fitness:Callable
+    get_constraint:Callable=None
+    constraint_param:float=None
     CR:float=0.3
     betamin:float=0.2
     betamax:float=0.8
-    max_eval:Optional[int]=None
+    max_evals:Optional[int]=None
     metrics:Collection[str]=('fitness',)
     callbacks:Collection[Callback]=None
 
     def __post_init__(self):
-        self.gen = 0
-        self.evals = 0
-        self.bests = []
-        self.callbacks = [e(self) for e in listify(self.callbacks)]
+        self.have_constraint = self.get_constraint is not None
+        if self.have_constraint:
+            if constraint_param is None: raise Exception('You need to especify a `constraint_param`.')
+
+        self.callbacks = [Recorder(self)] + [e(self) for e in listify(self.callbacks)]
         self.cb_handler = CallbackHandler(self, self.callbacks)
-        self.eval_fitness()
-
-    @property
-    def best(self): return min(self.bests)
-
-    @property
-    def best_with_idx(self):
-        idx = np.argmin(self.bests)
-        return (idx, self.bests[idx])
 
     def eval_fitness(self, pbar=None):
         try:
             self.cb_handler.on_fitness_all_begin()
             for indiv in progress_bar(self.population, parent=pbar):
-                self.cb_handler.on_fitness_one_begin()
-                if self.max_eval is not None: # remove later
-                    if self.evals >= self.max_eval: break
-
+                self.cb_handler.on_fitness_one_begin(indiv=indiv)
                 self.get_fitness(indiv)
-                self.cb_handler.on_fitness_one_end()
-                indiv.gen = self.gen # needs modification ex: self.cb_handler.state_dict['gen']
-                self.evals += 1 # remove later
+                self.cb_handler.on_fitness_one_end(indiv=indiv)
 
-            self.bests.append(self.get_best().fitness_value) # should be on recorder
         except CancelFitnessException: self.cb_handler.on_fitness_cancel()
-        finally: self.cb_handler.on_fitness_all_end()
+        finally: self.cb_handler.on_fitness_all_end(best=self.get_best().fitness_value)
+
+    def eval_constraint(self, pbar=None):
+        pass
 
     def evolve_one(self, idx):
-        res = 0
         indiv = self.population[idx]
         dims = indiv.dimensions
         jrand = np.random.randint(dims)
@@ -101,10 +91,10 @@ class Optimization:
             new_data = picked[0] + F*picked[1] - picked[2]
             indiv.data[picked_dims] = new_data.clip(indiv.lower_limit, indiv.upper_limit)
 
-    def evolve_all(self):
+    def evolve_all(self, pbar=None):
         try:
             self.cb_handler.on_evol_all_begin()
-            for i in range(len(self.population)):
+            for i in progress_bar(range(len(self.population)), parent=pbar):
                 self.cb_handler.on_evol_one_begin()
                 self.evolve_one(i)
                 self.cb_handler.on_evol_one_end()
@@ -118,34 +108,17 @@ class Optimization:
         return self.population[idx]
 
     def run_one_gen(self, pbar=None):
-        self.gen += 1 # add to recorder
-        self.evolve_all()
+        self.evolve_all(pbar)
         self.eval_fitness(pbar)
+        self.eval_constraint(pbar)
 
-    def run(self, generations=100, show_graph=True, update_each=10, **kwargs):
+    def run(self, generations=100, show_graph=True, update_each=10):
         pbar = master_bar(range(generations))
-        pbar.names = self.metrics
         try:
-            self.cb_handler.on_run_begin(generations)
+            self.cb_handler.on_run_begin(generations, pbar, self.metrics, self.max_evals)
             for gen in pbar:
                 self.cb_handler.on_gen_begin()
                 self.run_one_gen(pbar=pbar)
-                if show_graph and (gen+1)%update_each==0: pbar.update_graph(self._get_plot_data(), **kwargs)
-                self.cb_handler.on_gen_end()
-            else:
-                if show_graph: pbar.update_graph(self._get_plot_data(), **kwargs)
+                self.cb_handler.on_gen_end(update_each=update_each, show_graph=show_graph)
         except CancelRunException: self.cb_handler.on_cancel_run()
         finally: self.cb_handler.on_run_end()
-
-    def _get_plot_data(self): # should be on recorder
-        x = np.arange(len(self.bests))
-        return [[x,self.bests]]
-
-    def plot(self, ax=None, alpha=0.75, size=100, color='green', figsize=(8,5)): # should be on recorder
-        if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
-        for g,n in zip(self._get_plot_data(),self.metrics): ax.plot(*g, alpha=alpha, label=n)
-        idx,best = self.best_with_idx
-        ax.scatter(idx, best, s=size, c=color)
-        ax.legend(loc='upper right')
-        ax.set_title(f'Best fitness value: {best:.2f}\nGeneration: {idx}')
-
