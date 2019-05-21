@@ -14,6 +14,7 @@ class Individual:
     fitness_value:Optional[float]=None
     constraints:Optional[Collection[float]]=None
     constraints_sum:Optional[float]=None
+    is_feasible:Optional[bool]=True
 
     @classmethod
     def new_random(cls, dimensions=10, lower_limit=-5, upper_limit=5):
@@ -76,37 +77,29 @@ class Optimization:
         self.callbacks = [Recorder(self)] + [e(self) for e in listify(self.callbacks)]
         self.cb_handler = CallbackHandler(self, self.callbacks)
 
-    def eval_fitness(self, pbar=None):
-        try:
-            self.cb_handler.on_fitness_all_begin()
-            for indiv in progress_bar(self.population, parent=pbar):
-                self.cb_handler.on_fitness_one_begin(indiv=indiv)
-                fitness = self.get_fitness(indiv)
-                self.cb_handler.on_fitness_one_end(indiv=indiv, fitness=fitness)
+    def _get_best(self, indiv1, indiv2):
+        return indiv1 if indiv1.fitness_value <= indiv2.fitness_value else indiv2
 
-        except CancelFitnessException: self.cb_handler.on_fitness_cancel()
-        finally: self.cb_handler.on_fitness_all_end(best=self.get_best().fitness_value)
+    def _get_lowest_constraint(self, indiv1, indiv2):
+        return indiv1 if indiv1.constraints_sum <= indiv2.constraints_sum else indiv2
 
-    def eval_constraints(self, pbar=None):
-        try:
-            self.cb_handler.on_constraints_all_begin()
-            for indiv in progress_bar(self.population, parent=pbar):
-                self.cb_handler.on_constraints_one_begin(indiv=indiv)
-                self.get_each_constraint(indiv)
-                self.cb_handler.on_constraints_one_end(indiv=indiv)
+    def _get_best_constraints(self, indiv1, indiv2):
+        'Feasibility rules method.'
+        if indiv1.is_feasible:
+            if indiv2.is_feasible: return self._get_best(indiv1, indiv2)              # Both are feasible
+            else                 : return indiv1                                      # Only indiv1 is feasible
+        else:
+            if indiv2.is_feasible: return indiv2                                      # Only indiv2 is feasible
+            else                 : return self._get_lowest_constraint(indiv1, indiv2) # Both are unfeasible
 
-        except CancelConstraintsException: self.cb_handler.on_cancel_constraints()
-        finally: self.cb_handler.on_constraints_all_end()
+    def get_best(self, indiv1, indiv2):
+        fn = self._get_best_constraints if self.have_constraints else self._get_best
+        return fn(indiv1, indiv2)
 
-    def get_each_constraint(self, indiv):
-        try:
-            for fn,b in zip(self.get_constraints,self.constraint_params):
-                b = self.cb_handler.on_each_constraint_begin(indiv=indiv, b=b)
-                constraint = fn(indiv, b)
-                self.cb_handler.on_each_constraint_end(indiv=indiv, constraint=constraint)
-        except CancelOnEachConstraint: self.cb_handler.on_cancel_each_constraint()
+    def eval_feasibility(self, indiv):
+        return True
 
-    def evolve_one(self, indiv):
+    def _evolve(self, indiv):
         dims = indiv.dimensions
         jrand = np.random.randint(dims)
         crs = np.argwhere(np.random.rand(dims) < self.CR)[:,0].tolist()
@@ -118,34 +111,62 @@ class Optimization:
             new_data = picked[0] + F*picked[1] - picked[2]
             indiv.data[picked_dims] = new_data.clip(indiv.lower_limit, indiv.upper_limit)
 
-    def evolve_all(self, pbar=None):
+    def evolve(self, indiv):
         try:
-            self.cb_handler.on_evol_all_begin()
-            for indiv in progress_bar(self.population, parent=pbar):
-                self.cb_handler.on_evol_one_begin(indiv=indiv)
-                self.evolve_one(indiv)
-                self.cb_handler.on_evol_one_end(indiv=indiv)
+            self.cb_handler.on_evolve_begin()
+            self._evolve(indiv)
+        except CancelEvolveException: self.cb_handler.on_cancel_evolve()
+        finally: self.cb_handler.on_evolve_end()
 
-        except CancelEvolException: self.cb_handler.on_cancel_evol()
-        finally: self.cb_handler.on_evol_all_end()
+    def eval_fitness(self, indiv):
+        fitness = None
+        try:
+            self.cb_handler.on_fitness_begin()
+            fitness = self.get_fitness(indiv)
 
-    def get_best(self):
-        idx = np.argmin([e.fitness_value for e in self.population])
-        return self.population[idx]
+        except CancelFitnessException: self.cb_handler.on_fitness_cancel()
+        finally: self.cb_handler.on_fitness_end(fitness=fitness)
+
+    def get_each_constraint(self, indiv):
+        try:
+            for fn,b in zip(self.get_constraints,self.constraint_params):
+                b = self.cb_handler.on_each_constraint_begin(b=b)
+                constraint = fn(indiv, b)
+                self.cb_handler.on_each_constraint_end(constraint=constraint)
+        except CancelEachConstraintException: self.cb_handler.on_cancel_each_constraint()
+
+    def eval_constraints(self, indiv):
+        try:
+            self.cb_handler.on_constraints_begin()
+            self.get_each_constraint(indiv)
+
+        except CancelConstraintsException: self.cb_handler.on_cancel_constraints()
+        finally: self.cb_handler.on_constraints_end()
+
+    def process_individual(self, indiv):
+        try:
+            self.cb_handler.on_individual_begin(indiv=indiv)
+            self.evolve(indiv)
+            self.eval_fitness(indiv)
+            if self.have_constraints: self.eval_constraints(indiv)
+
+        except CancelGenException: self.cb_handler.on_cancel_individual()
+        finally: self.cb_handler.on_individual_end()
 
     def run_one_gen(self, pbar=None):
-        self.evolve_all(pbar)
-        self.eval_fitness(pbar)
-        if self.have_constraints: self.eval_constraints(pbar)
+        try:
+            self.cb_handler.on_gen_begin()
+            for indiv in progress_bar(self.population, parent=pbar): self.process_individual(indiv)
+
+        except CancelGenException: self.cb_handler.on_cancel_gen()
+        finally: self.cb_handler.on_gen_end()
 
     def run(self, generations=100, show_graph=True, update_each=10):
         pbar = master_bar(range(generations))
         try:
-            self.cb_handler.on_run_begin(generations, pbar, self.metrics, self.max_evals, show_graph=show_graph)
-            for gen in pbar:
-                self.cb_handler.on_gen_begin()
-                self.run_one_gen(pbar=pbar)
-                self.cb_handler.on_gen_end(update_each=update_each)
+            self.cb_handler.on_run_begin(generations, pbar, self.metrics, self.max_evals, show_graph=show_graph, update_each=update_each)
+            for gen in pbar: self.run_one_gen(pbar=pbar)
+                
         except CancelRunException: self.cb_handler.on_cancel_run()
         finally: self.cb_handler.on_run_end()
 
