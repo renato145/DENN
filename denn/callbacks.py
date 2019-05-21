@@ -19,6 +19,7 @@ class Callback():
     def on_evolve_end(self, **kwargs:Any)->None: pass
     def on_fitness_begin(self, **kwargs:Any)->None: pass
     def on_fitness_end(self, **kwargs:Any)->None: pass
+    def on_time_change(self, **kwargs:Any)->None: pass
     def on_constraints_begin(self, **kwargs:Any)->None: pass
     def on_each_constraint_begin(self, **kwargs:Any)->None: pass
     def on_each_constraint_end(self, **kwargs:Any)->None: pass
@@ -33,7 +34,7 @@ class Callback():
     def on_cancel_gen(self, **kwargs:Any)->None: pass
     def on_cancel_run(self, **kwargs:Any)->None: pass
 
-def _get_init_state(): return dict(gen=0, evals=0, best=None)
+def _get_init_state(): return dict(gen=0, evals=0, time=0, best=None)
 
 @dataclass
 class CallbackHandler():
@@ -56,10 +57,12 @@ class CallbackHandler():
     def __call__(self, cb_name, **kwargs):
         for cb in self.callbacks: self._call_and_update(cb, cb_name, **kwargs)
 
-    def on_run_begin(self, generations:int, pbar:PBar, metrics:Collection[str], max_evals:Optional[int], show_graph:bool, update_each:int)->None:
+    def on_run_begin(self, generations:int, pbar:PBar, metrics:Collection[str], max_evals:Optional[int], max_times:Optional[int],
+                     frequency:Optional[int], show_graph:bool, update_each:int)->None:
         gen_end = generations + self.state_dict['gen'] - 1
+        update_each = min(update_each, generations)
         self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, metrics=metrics, max_evals=max_evals,
-                                    show_graph=show_graph, update_each=update_each))
+                                    max_times=max_times, frequency=frequency, show_graph=show_graph, update_each=update_each))
         self('run_begin')
 
     def on_gen_begin(self, **kwargs:Any)->None:
@@ -68,13 +71,14 @@ class CallbackHandler():
 
     def on_individual_begin(self, indiv, **kwargs:Any)->None:
         self.state_dict['last_indiv'] = indiv
+        if indiv.fitness_value is None:
+            self.optim.eval_fitness(indiv)  
+            if self.optim.have_constraints: self.optim.eval_constraints(indiv)
+
+        self.state_dict['indiv_bkup'] = indiv.clone()
         self('individual_begin')
 
     def on_evolve_begin(self, **kwargs:Any)->None:
-        indiv = self.state_dict['last_indiv']
-        if indiv.fitness_value is None:
-            self.optim.eval_fitness(indiv)
-            if self.optim.have_constraints: self.optim.eval_constraints(indiv)
         self('evolve_begin')
 
     def on_evolve_end(self, **kwargs:Any)->None:
@@ -85,13 +89,23 @@ class CallbackHandler():
 
     def on_fitness_end(self, fitness, **kwargs:Any)->None:
         indiv = self.state_dict['last_indiv']
-        indiv.gen = self.state_dict['gen']
-        self.state_dict['evals'] += 1
         self.state_dict['last_fitness'] = fitness
         self('fitness_end')
         indiv.fitness_value = self.state_dict['last_fitness']
+
+        # eval step
+        self.state_dict['evals'] += 1
         if self.state_dict['max_evals'] is not None:
             if self.state_dict['max_evals'] <= self.state_dict['evals']: raise CancelRunException
+
+        # return evals to check time step
+        return self.state_dict['evals']
+
+    def on_time_change(self, **kwargs:Any)->None:
+        self.state_dict['time'] += 1
+        self('time_change')
+        if self.state_dict['max_times'] is not None:
+            if self.state_dict['max_times'] <= self.state_dict['time']: raise CancelRunException
 
     def on_constraints_begin(self, **kwargs:Any)->None:
         indiv = self.state_dict['last_indiv']
@@ -114,14 +128,21 @@ class CallbackHandler():
         self.state_dict['last_constraints'] = indiv.constraints
         self('constraints_end')
         indiv.constraints = self.state_dict['last_constraints']
-        indiv.constraints_sum = sum(indiv.constraints)
+        indiv.constraints_sum = self.optim.get_sum_constraints(indiv)
         indiv.is_feasible = self.optim.eval_feasibility(indiv)
 
     def on_individual_end(self, **kwargs:Any)->None:
         indiv = self.state_dict['last_indiv']
-        if self.state_dict['best'] is None: self.state_dict['best'] = indiv
-        else                              : self.state_dict['best'] = self.optim.get_best(indiv, self.state_dict['best'])
+        indiv_bkup = self.state_dict['indiv_bkup']
+        new_indiv = self.optim.get_best(indiv, indiv_bkup)
+        new_indiv.gen = self.state_dict['gen']
+        
+        if self.state_dict['best'] is None: self.state_dict['best'] = new_indiv
+        else                              : self.state_dict['best'] = self.optim.get_best(new_indiv, self.state_dict['best'])
+
+        self.state_dict['new_indiv'] = new_indiv
         self('individual_end')
+        return self.state_dict['new_indiv']
 
     def on_gen_end(self, **kwargs:Any)->None:
         self('gen_end')
