@@ -199,6 +199,7 @@ class Recorder(Callback):
         if show_graph and (gen+1)%update_each==0: self.pbar.update_graph(self.get_plot_data())
 
     def on_run_end(self, show_graph, show_report, **kwargs):
+        clear_output()
         self.elapsed = format_time(get_time() - self.start_time)
         if show_graph: self.pbar.update_graph(self.get_plot_data())
         if show_report: self.show_report()

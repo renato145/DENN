@@ -8,6 +8,7 @@ from fastprogress.fastprogress import MasterBar, ProgressBar, format_time
 from collections import Counter, defaultdict, Iterable
 from numba import jit
 from time import time as get_time
+from IPython.display import clear_output
 
 Path.ls = lambda x: list(x.iterdir())
 PBar = Union[MasterBar, ProgressBar]
