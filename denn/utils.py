@@ -2,12 +2,13 @@ from .imports import *
 
 __all__ = ['pick_n_but', 'get_unique', 'listify', 'ifnone', 'is_listy','camel2snake']
 
-def pick_n_but(n:int, idx:int, collection:Collection[Any]):
-    'pick `n` objects from `collection` not in index `idx`'
-    idxs = list(range(len(collection)))
+@jit(nopython=True)
+def pick_n_but(n:int, idx:int, size:int):
+    'pick `n` objects from not in index `idx`'
+    idxs = list(range(size))
     idxs.pop(idx)
-    idxs = np.random.choice(idxs, n, replace=False)
-    return [collection[i] for i in idxs]
+    idxs = np.random.choice(np.array(idxs), n, replace=False)
+    return idxs
 
 def get_unique(x:Collection[Any]): return list(set(x))
 

@@ -1,8 +1,9 @@
 from .imports import *
 from .utils import *
 
-__all__ = ['Callback', 'CallbackHandler', 'Recorder', 'CancelEvolveException', 'CancelFitnessException', 'CancelEachConstraintException',
-           'CancelConstraintsException', 'CancelGenException', 'CancelRunException']
+__all__ = ['Callback', 'CallbackHandler', 'DynamicConstraint', 'Recorder',
+           'CancelEvolveException', 'CancelFitnessException', 'CancelEachConstraintException', 'CancelConstraintsException',
+           'CancelGenException', 'CancelRunException']
 class Callback():
     _order = 0
 
@@ -58,11 +59,12 @@ class CallbackHandler():
         for cb in self.callbacks: self._call_and_update(cb, cb_name, **kwargs)
 
     def on_run_begin(self, generations:int, pbar:PBar, metrics:Collection[str], max_evals:Optional[int], max_times:Optional[int],
-                     frequency:Optional[int], show_graph:bool, update_each:int)->None:
+                     frequency:Optional[int], show_graph:bool, update_each:int, show_report:bool)->None:
         gen_end = generations + self.state_dict['gen'] - 1
         update_each = min(update_each, generations)
         self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, metrics=metrics, max_evals=max_evals,
-                                    max_times=max_times, frequency=frequency, show_graph=show_graph, update_each=update_each))
+                                    max_times=max_times, frequency=frequency, show_graph=show_graph, update_each=update_each,
+                                    show_report=show_report))
         self('run_begin')
 
     def on_gen_begin(self, **kwargs:Any)->None:
@@ -72,7 +74,7 @@ class CallbackHandler():
     def on_individual_begin(self, indiv, **kwargs:Any)->None:
         self.state_dict['last_indiv'] = indiv
         if indiv.fitness_value is None:
-            self.optim.eval_fitness(indiv)  
+            self.optim.eval_fitness(indiv)
             if self.optim.have_constraints: self.optim.eval_constraints(indiv)
 
         self.state_dict['indiv_bkup'] = indiv.clone()
@@ -96,7 +98,7 @@ class CallbackHandler():
         # eval step
         self.state_dict['evals'] += 1
         if self.state_dict['max_evals'] is not None:
-            if self.state_dict['max_evals'] <= self.state_dict['evals']: raise CancelRunException
+            if self.state_dict['max_evals'] <= self.state_dict['evals']: raise CancelRunException('`max_evals` reached.')
 
         # return evals to check time step
         return self.state_dict['evals']
@@ -105,7 +107,7 @@ class CallbackHandler():
         self.state_dict['time'] += 1
         self('time_change')
         if self.state_dict['max_times'] is not None:
-            if self.state_dict['max_times'] <= self.state_dict['time']: raise CancelRunException
+            if self.state_dict['max_times'] <= self.state_dict['time']: raise CancelRunException('`max_time` reached.')
 
     def on_constraints_begin(self, **kwargs:Any)->None:
         indiv = self.state_dict['last_indiv']
@@ -136,7 +138,7 @@ class CallbackHandler():
         indiv_bkup = self.state_dict['indiv_bkup']
         new_indiv = self.optim.get_best(indiv, indiv_bkup)
         new_indiv.gen = self.state_dict['gen']
-        
+
         if self.state_dict['best'] is None: self.state_dict['best'] = new_indiv
         else                              : self.state_dict['best'] = self.optim.get_best(new_indiv, self.state_dict['best'])
 
@@ -151,23 +153,33 @@ class CallbackHandler():
     def on_run_end(self, **kwargs:Any)->None:
         self('run_end')
 
-    def on_cancel_evolve(self, **kwargs:Any)->None:
+    def on_cancel_evolve(self, exception, **kwargs:Any)->None:
+        print(f'Evolve cancelled: {exception}')
         self('cancel_evolve')
 
-    def on_cancel_fitness(self, **kwargs:Any)->None:
+    def on_cancel_fitness(self, exception, **kwargs:Any)->None:
+        print(f'Fitness cancelled: {exception}')
         self('cancel_fitness')
 
-    def on_cancel_each_constraint(self, **kwargs:Any)->None:
+    def on_cancel_each_constraint(self, exception, **kwargs:Any)->None:
+        print(f'Each_constraint cancelled: {exception}')
         self('cancel_each_constraint')
 
-    def on_cancel_constraints(self, **kwargs:Any)->None:
+    def on_cancel_constraints(self, exception, **kwargs:Any)->None:
+        print(f'Constraints cancelled: {exception}')
         self('cancel_constraints')
 
-    def on_cancel_gen(self, **kwargs:Any)->None:
+    def on_cancel_gen(self, exception, **kwargs:Any)->None:
+        print(f'Gen cancelled: {exception}')
         self('cancel_gen')
 
-    def on_cancel_run(self, **kwargs:Any)->None:
+    def on_cancel_run(self, exception, **kwargs:Any)->None:
+        print(f'Run cancelled: {exception}')
         self('cancel_run')
+
+class DynamicConstraint(Callback):
+    def on_each_constraint_begin(self, last_constraint_param, time, **kwargs):
+        return {'last_constraint_param': last_constraint_param[time]}
 
 class Recorder(Callback):
     _order = 99
@@ -180,13 +192,16 @@ class Recorder(Callback):
         self.pbar = pbar
         self.metrics = metrics
         self.pbar.names = metrics
+        self.start_time = get_time()
 
     def on_gen_end(self, gen, update_each, show_graph, best, **kwargs):
         self.bests.append(best.fitness_value)
         if show_graph and (gen+1)%update_each==0: self.pbar.update_graph(self.get_plot_data())
 
-    def on_run_end(self, show_graph, **kwargs):
+    def on_run_end(self, show_graph, show_report, **kwargs):
+        self.elapsed = format_time(get_time() - self.start_time)
         if show_graph: self.pbar.update_graph(self.get_plot_data())
+        if show_report: self.show_report()
 
     @property
     def best(self): return min(self.bests)
@@ -195,6 +210,10 @@ class Recorder(Callback):
     def best_with_idx(self):
         idx = np.argmin(self.bests)
         return (idx, self.bests[idx])
+
+    def show_report(self):
+        print('A proper report should be shown here :)')
+        print(f'Total time: {self.elapsed}')
 
     def get_plot_data(self):
         x = np.arange(len(self.bests))

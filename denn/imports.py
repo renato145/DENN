@@ -4,8 +4,10 @@ from pathlib import Path
 from functools import partial
 from typing import Any, Callable, Collection, Optional, Union
 from fastprogress import progress_bar, master_bar
-from fastprogress.fastprogress import MasterBar, ProgressBar
+from fastprogress.fastprogress import MasterBar, ProgressBar, format_time
 from collections import Counter, defaultdict, Iterable
+from numba import jit
+from time import time as get_time
 
 Path.ls = lambda x: list(x.iterdir())
 PBar = Union[MasterBar, ProgressBar]

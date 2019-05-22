@@ -15,6 +15,7 @@ class Individual:
     constraints:Optional[Collection[float]]=None
     constraints_sum:Optional[float]=None
     is_feasible:Optional[bool]=False
+    data:Optional[np.array]=None
 
     @classmethod
     def new_random(cls, dimensions=10, lower_limit=-5, upper_limit=5):
@@ -36,7 +37,7 @@ class Individual:
     def clone(self):
         return self.__class__(dimensions=self.dimensions, lower_limit=self.lower_limit, upper_limit=self.upper_limit,
                               idx=self.idx, gen=self.gen, fitness_value=self.fitness_value, constraints=self.constraints,
-                              constraints_sum=self.constraints_sum, is_feasible=self.is_feasible)
+                              constraints_sum=self.constraints_sum, is_feasible=self.is_feasible, data=self.data.copy())
 
     def copy_from(self, indiv):
         self.dimensions = indiv.dimensions
@@ -48,6 +49,7 @@ class Individual:
         self.constraints = indiv.constraints
         self.constraints_sum = indiv.constraints_sum
         self.is_feasible = indiv.is_feasible
+        self.data = indiv.data.copy()
 
 @dataclass
 class Population:
@@ -78,7 +80,7 @@ class Optimization:
     get_fitness:Callable
     get_constraints:Union[Callable,Collection[Callable]]=None
     constraint_params:Union[Any,Collection[Any]]=None
-    time_params:Union[Any,Collection[Any]]=None
+    max_times:Optional[int]=None
     frequency:Optional[int]=None
     CR:float=0.3
     beta_min:float=0.2
@@ -92,14 +94,11 @@ class Optimization:
         self.have_constraints = len(self.get_constraints)>0
         if self.have_constraints:
             if self.constraint_params is None: raise Exception('You need to specify `constraint_params` when giving `get_constraints`.')
-            self.constraint_params = listify(self.constraint_params)
             assert len(self.get_constraints) == len(self.constraint_params)
 
-        self.time_params = listify(self.time_params)
-        self.max_times = len(self.time_params)
-        self.have_time = self.max_times > 0
+        self.have_time = self.max_times is not None
         if self.have_time:
-            if self.frequency is None: raise Exception('You need to specify `frequency` when giving `time_params`.')
+            if self.frequency is None: raise Exception('You need to specify `frequency` when giving `max_times`.')
 
         self.callbacks = [Recorder(self)] + [e(self) for e in listify(self.callbacks)]
         self.cb_handler = CallbackHandler(self, self.callbacks)
@@ -143,7 +142,7 @@ class Optimization:
         picked_dims = get_unique(crs + [jrand])
 
         if len(picked_dims) > 0:
-            picked = [e.data[picked_dims] for e in pick_n_but(3, indiv.idx, self.population)]
+            picked = [self.population[i].data[picked_dims] for i in pick_n_but(3, indiv.idx, len(self.population))]
             F = np.random.uniform(self.beta_min, self.beta_max, size=len(picked_dims))
             new_data = picked[0] + F*picked[1] - picked[2]
             indiv.data[picked_dims] = new_data
@@ -153,7 +152,7 @@ class Optimization:
         try:
             self.cb_handler.on_evolve_begin()
             self._evolve(indiv)
-        except CancelEvolveException: self.cb_handler.on_cancel_evolve()
+        except CancelEvolveException as exception: self.cb_handler.on_cancel_evolve(exception)
         finally: self.cb_handler.on_evolve_end()
 
     def eval_fitness(self, indiv):
@@ -162,7 +161,7 @@ class Optimization:
             self.cb_handler.on_fitness_begin()
             fitness = self.get_fitness(indiv)
 
-        except CancelFitnessException: self.cb_handler.on_fitness_cancel()
+        except CancelFitnessException as exception: self.cb_handler.on_fitness_cancel(exception)
         finally:
             evals = self.cb_handler.on_fitness_end(fitness=fitness)
             self.change_time(evals)
@@ -178,14 +177,14 @@ class Optimization:
                 b = self.cb_handler.on_each_constraint_begin(b=b)
                 constraint = fn(indiv, b)
                 self.cb_handler.on_each_constraint_end(constraint=constraint)
-        except CancelEachConstraintException: self.cb_handler.on_cancel_each_constraint()
+        except CancelEachConstraintException as exception: self.cb_handler.on_cancel_each_constraint(exception)
 
     def eval_constraints(self, indiv):
         try:
             self.cb_handler.on_constraints_begin()
-            self.get_each_constraint(indiv)     
+            self.get_each_constraint(indiv)
 
-        except CancelConstraintsException: self.cb_handler.on_cancel_constraints()
+        except CancelConstraintsException as exception: self.cb_handler.on_cancel_constraints(exception)
         finally: self.cb_handler.on_constraints_end()
 
     def process_individual(self, indiv):
@@ -195,26 +194,28 @@ class Optimization:
             self.eval_fitness(indiv)
             if self.have_constraints: self.eval_constraints(indiv)
 
-        except CancelGenException: self.cb_handler.on_cancel_individual()
+        except CancelGenException as exception: self.cb_handler.on_cancel_individual(exception)
         finally:
             new_indiv = self.cb_handler.on_individual_end()
             indiv.copy_from(new_indiv)
 
-    def run_one_gen(self, pbar=None):
+    def run_one_gen(self):
         try:
             self.cb_handler.on_gen_begin()
-            for indiv in progress_bar(self.population, parent=pbar): self.process_individual(indiv)
+            for indiv in self.population: self.process_individual(indiv)
 
-        except CancelGenException: self.cb_handler.on_cancel_gen()
+        except CancelGenException as exception: self.cb_handler.on_cancel_gen(exception)
         finally: self.cb_handler.on_gen_end()
 
-    def run(self, generations=100, show_graph=True, update_each=10):
-        pbar = master_bar(range(generations))
+    def run(self, generations, show_graph=True, update_each=100, show_report=True):
+        pbar = master_bar(range(1))
         try:
             self.cb_handler.on_run_begin(generations, pbar, self.metrics, self.max_evals, self.max_times, self.frequency,
-                                         show_graph=show_graph, update_each=update_each)
-            for gen in pbar: self.run_one_gen(pbar=pbar)
+                                         show_graph=show_graph, update_each=update_each, show_report=show_report)
+            for _ in pbar:
+                for gen in progress_bar(range(generations), parent=pbar): self.run_one_gen()
+            # for gen in pbar: self.run_one_gen()
+            # for gen in progress_bar(range(generations), parent=pbar): self.run_one_gen()
                 
-        except CancelRunException: self.cb_handler.on_cancel_run()
+        except CancelRunException as exception: self.cb_handler.on_cancel_run(exception)
         finally: self.cb_handler.on_run_end()
-
