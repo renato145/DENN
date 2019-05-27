@@ -2,7 +2,7 @@ from .imports import *
 from .callbacks import *
 from .utils import *
 
-__all__ = ['Individual', 'Population', 'Optimization']
+__all__ = ['Individual', 'Population', 'Optimization', 'Runs']
 
 @dataclass
 class Individual:
@@ -207,15 +207,51 @@ class Optimization:
         except CancelGenException as exception: self.cb_handler.on_cancel_gen(exception)
         finally: self.cb_handler.on_gen_end()
 
-    def run(self, generations, show_graph=True, update_each=100, show_report=True):
+    def run(self, generations, show_graph=True, update_each=10, show_report=True, silent=False):
         pbar = master_bar(range(1))
         try:
             self.cb_handler.on_run_begin(generations, pbar, self.metrics, self.max_evals, self.max_times, self.frequency,
-                                         show_graph=show_graph, update_each=update_each, show_report=show_report)
+                                         show_graph=show_graph, update_each=update_each, show_report=show_report, silent=silent)
             for _ in pbar:
                 for gen in progress_bar(range(generations), parent=pbar): self.run_one_gen()
-            # for gen in pbar: self.run_one_gen()
-            # for gen in progress_bar(range(generations), parent=pbar): self.run_one_gen()
-                
+
         except CancelRunException as exception: self.cb_handler.on_cancel_run(exception)
         finally: self.cb_handler.on_run_end()
+
+    def clone(self): return deepcopy(self)
+
+    def create_multiple_runs(self, n_runs, **kwargs):
+        runs = Runs.from_template([self.clone() for _ in range(n_runs)], **kwargs)
+        runs.reset_population()
+        return runs
+
+def _optimization_run(opt, i, generations):
+    opt.run(generations, silent=True)
+    return opt
+
+@dataclass
+class Runs:
+    optimizations:Collection[Optimization]
+    parallel:bool=True
+    n_cpus:Optional[int]=None
+
+    def __post_init__(self):
+        n_cpus = ifnone(self.n_cpus, cpu_count())
+
+    def reset_population(self):
+        for opt in self.optimizations: opt.population.refresh()
+
+    def run(self, generations):
+        self.optimizations = parallel(partial(_optimization_run, generations=generations), self.optimizations)
+        self.times_data = self.get_times_data()
+
+    @classmethod
+    def from_template(cls, optimizations, **kwargs):
+        return cls(optimizations, **kwargs)
+
+    def get_times_data(self):
+        times_data = np.stack([e.recorder.best_times_fitness for e in self.optimizations])
+        df = pd.DataFrame(times_data.T)
+        df.columns = [f'run_{i+1}' for i in range(df.shape[1])]
+        return df
+

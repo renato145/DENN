@@ -59,12 +59,13 @@ class CallbackHandler():
         for cb in self.callbacks: self._call_and_update(cb, cb_name, **kwargs)
 
     def on_run_begin(self, generations:int, pbar:PBar, metrics:Collection[str], max_evals:Optional[int], max_times:Optional[int],
-                     frequency:Optional[int], show_graph:bool, update_each:int, show_report:bool)->None:
+                     frequency:Optional[int], show_graph:bool, update_each:int, show_report:bool, silent:bool)->None:
         gen_end = generations + self.state_dict['gen'] - 1
         update_each = min(update_each, generations)
+        if silent: show_graph = show_report = False
         self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, metrics=metrics, max_evals=max_evals,
                                     max_times=max_times, frequency=frequency, show_graph=show_graph, update_each=update_each,
-                                    show_report=show_report))
+                                    show_report=show_report, silent=silent))
         self('run_begin')
 
     def on_gen_begin(self, **kwargs:Any)->None:
@@ -187,6 +188,7 @@ class Recorder(Callback):
     def __init__(self, optim):
         super().__init__(optim)
         self.bests = []
+        self.best_times = []
 
     def on_run_begin(self, pbar, metrics, **kwargs):
         self.pbar = pbar
@@ -194,14 +196,17 @@ class Recorder(Callback):
         self.pbar.names = metrics
         self.start_time = get_time()
 
-    def on_gen_end(self, gen, update_each, show_graph, best, **kwargs):
+    def on_gen_end(self, best, **kwargs):
         self.bests.append(best.fitness_value)
-        if show_graph and (gen+1)%update_each==0: self.pbar.update_graph(self.get_plot_data())
 
-    def on_run_end(self, show_graph, show_report, **kwargs):
-        clear_output()
+    def on_time_change(self, last_indiv, time, show_graph, update_each, **kwargs:Any):
+        self.best_times.append(last_indiv.clone())
+        if show_graph and (time+1)%update_each==0: self._pbar_plot()
+
+    def on_run_end(self, show_graph, show_report, silent, **kwargs):
         self.elapsed = format_time(get_time() - self.start_time)
-        if show_graph: self.pbar.update_graph(self.get_plot_data())
+        if show_graph: self._pbar_plot()
+        if not silent: clear_output()
         if show_report: self.show_report()
 
     @property
@@ -212,22 +217,34 @@ class Recorder(Callback):
         idx = np.argmin(self.bests)
         return (idx, self.bests[idx])
 
+    @property
+    def best_times_fitness(self): return np.asarray([e.fitness_value for e in self.best_times])
+
     def show_report(self):
         print('A proper report should be shown here :)')
         print(f'Total time: {self.elapsed}')
 
-    def get_plot_data(self):
-        x = np.arange(len(self.bests))
-        return [[x,self.bests]]
+    def _pbar_plot(self):
+        self.pbar.update_graph(self.get_plot_data(), x_bounds=(0,self.optim.max_times))
 
-    def plot(self, ax=None, alpha=0.75, size=100, color='green', figsize=(8,5)):
+    def get_plot_data(self):
+        x = np.arange(len(self.best_times_fitness))
+        return [[x,self.best_times_fitness]]
+
+    def plot_times(self, ax=None, figsize=(8,5), **kwargs):
         if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
-        for g,n in zip(self.get_plot_data(),self.metrics): ax.plot(*g, alpha=alpha, label=n)
+        ax.plot(self.best_times_fitness, **kwargs)
+        ax.set_xlabel('times')
+        ax.set_ylabel('fitness value')
+
+    def plot_generations(self, ax=None, alpha=0.75, size=100, color='green', figsize=(8,5)):
+        if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
+        ax.plot(self.bests, alpha=alpha)
         idx,best = self.best_with_idx
         ax.scatter(idx, best, s=size, c=color)
         ax.set_title(f'Best fitness value: {best:.2f}\nGeneration: {idx}')
-        ax.set_xlabel('Generations')
-        ax.set_ylabel('Fitness value')
+        ax.set_xlabel('generations')
+        ax.set_ylabel('fitness value')
 
 class CancelEvolveException(Exception): pass
 class CancelFitnessException(Exception): pass
@@ -235,3 +252,4 @@ class CancelEachConstraintException(Exception): pass
 class CancelConstraintsException(Exception): pass
 class CancelGenException(Exception): pass
 class CancelRunException(Exception): pass
+
