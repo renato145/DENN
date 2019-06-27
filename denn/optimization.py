@@ -17,29 +17,35 @@ class Individual:
     is_feasible:Optional[bool]=False
     data:Optional[np.array]=None
 
+    def __eq__(self, other:'Individual'):
+        if not all(self.data == other.data): return False
+        if not (self.fitness_value == other.fitness_value): return False
+        if not all(i==j for i,j in zip(self.constraints,other.constraints)): return False
+        return True
+
     @classmethod
-    def new_random(cls, dimensions=10, lower_limit=-5, upper_limit=5):
+    def new_random(cls, dimensions:int=10, lower_limit:float=-5, upper_limit:float=5)->'Individual':
         res = cls(dimensions, lower_limit, upper_limit)
         res.func = partial(np.random.uniform, low=lower_limit, high=upper_limit, size=dimensions)
         res.refresh()
         return res
 
-    def refresh(self, *args, **kwargs):
+    def refresh(self, *args:Any, **kwargs:Any)->None:
         self.data = self.func(*args, **kwargs)
 
-    def assign_idx(self, idx):
+    def assign_idx(self, idx:int)->'Individual':
         self.idx = idx
         return self
 
-    def clip_limits(self):
+    def clip_limits(self)->None:
         self.data = self.data.clip(self.lower_limit, self.upper_limit)
 
-    def clone(self):
+    def clone(self)->'Individual':
         return self.__class__(dimensions=self.dimensions, lower_limit=self.lower_limit, upper_limit=self.upper_limit,
                               idx=self.idx, gen=self.gen, fitness_value=self.fitness_value, constraints=self.constraints,
                               constraints_sum=self.constraints_sum, is_feasible=self.is_feasible, data=self.data.copy())
 
-    def copy_from(self, indiv):
+    def copy_from(self, indiv:'Individual')->None:
         self.dimensions = indiv.dimensions
         self.lower_limit = indiv.lower_limit
         self.upper_limit = indiv.upper_limit
@@ -87,6 +93,7 @@ class Optimization:
     beta_max:float=0.8
     max_evals:Optional[int]=None
     metrics:Collection[str]=('fitness',)
+    time_change_pcts:Collection[float]=(0.0,0.5)
     callbacks:Collection[Callback]=None
 
     def __post_init__(self):
@@ -99,6 +106,7 @@ class Optimization:
         self.have_time = self.max_times is not None
         if self.have_time:
             if self.frequency is None: raise Exception('You need to specify `frequency` when giving `max_times`.')
+            self.time_change_checks = [int(self.population.n*e) for e in self.time_change_pcts]
 
         self.callbacks = [Recorder(self)] + [e(self) for e in listify(self.callbacks)]
         self.cb_handler = CallbackHandler(self, self.callbacks)
@@ -160,7 +168,6 @@ class Optimization:
         try:
             self.cb_handler.on_fitness_begin()
             fitness = self.get_fitness(indiv)
-
         except CancelFitnessException as exception: self.cb_handler.on_fitness_cancel(exception)
         finally:
             evals = self.cb_handler.on_fitness_end(fitness=fitness)
@@ -170,6 +177,14 @@ class Optimization:
         if self.have_time:
             if evals % self.frequency == 0:
                 self.cb_handler.on_time_change()
+
+    def detect_change(self, indiv):
+        try:
+            self.cb_handler.on_detect_change_begin()
+            self.eval_fitness(indiv)
+            if self.have_constraints: self.eval_constraints(indiv)
+        except CancelDetectChangeException as exception: self.cb_handler.on_cancel_detect_change(exception)
+        finally: self.cb_handler.on_detect_change_end(self.population)
 
     def get_each_constraint(self, indiv):
         try:
@@ -190,6 +205,7 @@ class Optimization:
     def process_individual(self, indiv):
         try:
             self.cb_handler.on_individual_begin(indiv=indiv)
+            if self.have_time and (indiv.idx in self.time_change_checks): self.detect_change(indiv)
             self.evolve(indiv)
             self.eval_fitness(indiv)
             if self.have_constraints: self.eval_constraints(indiv)

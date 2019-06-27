@@ -2,8 +2,9 @@ from .imports import *
 from .utils import *
 
 __all__ = ['Callback', 'CallbackHandler', 'DynamicConstraint', 'Recorder',
-           'CancelEvolveException', 'CancelFitnessException', 'CancelEachConstraintException', 'CancelConstraintsException',
-           'CancelGenException', 'CancelRunException']
+           'CancelDetectChangeException', 'CancelEvolveException', 'CancelFitnessException', 'CancelEachConstraintException',
+           'CancelConstraintsException', 'CancelGenException', 'CancelRunException']
+
 class Callback():
     _order = 0
 
@@ -16,6 +17,8 @@ class Callback():
     def on_run_begin(self, **kwargs:Any)->None: pass
     def on_gen_begin(self, **kwargs:Any)->None: pass
     def on_individual_begin(self, **kwargs:Any)->None: pass
+    def on_detect_change_begin(self, **kwargs:Any)->None: pass
+    def on_detect_change_end(self, **kwargs:Any)->None: pass
     def on_evolve_begin(self, **kwargs:Any)->None: pass
     def on_evolve_end(self, **kwargs:Any)->None: pass
     def on_fitness_begin(self, **kwargs:Any)->None: pass
@@ -28,6 +31,7 @@ class Callback():
     def on_individual_end(self, **kwargs:Any)->None: pass
     def on_gen_end(self, **kwargs:Any)->None: pass
     def on_run_end(self, **kwargs:Any)->None: pass
+    def on_cancel_detect_change(self, **kwargs:Any)->None: pass
     def on_cancel_evolve(self, **kwargs:Any)->None: pass
     def on_cancel_fitness(self, **kwargs:Any)->None: pass
     def on_cancel_each_constraint(self, **kwargs:Any)->None: pass
@@ -63,9 +67,8 @@ class CallbackHandler():
         gen_end = generations + self.state_dict['gen'] - 1
         update_each = min(update_each, generations)
         if silent: show_graph = show_report = False
-        self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, metrics=metrics, max_evals=max_evals,
-                                    max_times=max_times, frequency=frequency, show_graph=show_graph, update_each=update_each,
-                                    show_report=show_report, silent=silent))
+        self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, metrics=metrics, max_evals=max_evals, max_times=max_times,
+                                    frequency=frequency, show_graph=show_graph, update_each=update_each, show_report=show_report, silent=silent))
         self('run_begin')
 
     def on_gen_begin(self, **kwargs:Any)->None:
@@ -80,6 +83,20 @@ class CallbackHandler():
 
         self.state_dict['indiv_bkup'] = indiv.clone()
         self('individual_begin')
+
+    def on_detect_change_begin(self, **kwargs:Any)->None:
+        self.state_dict['skip_detect_change'] = False
+        if self.state_dict['gen'] == 0:
+            self.state_dict['skip_detect_change'] = True
+            raise CancelDetectChangeException('Skipping first generation.')
+        self('detect_change_begin')
+
+    def on_detect_change_end(self, population, **kwargs:Any)->None:
+        if self.state_dict['skip_detect_change']: return False
+        indiv = self.state_dict['last_indiv']
+        indiv_bkup = self.state_dict['indiv_bkup']
+        self.state_dict['change_detected'] = not (indiv == indiv_bkup)
+        self('detect_change_end', population=population)
 
     def on_evolve_begin(self, **kwargs:Any)->None:
         self('evolve_begin')
@@ -153,6 +170,11 @@ class CallbackHandler():
 
     def on_run_end(self, **kwargs:Any)->None:
         self('run_end')
+
+    def on_cancel_detect_change(self, exception, **kwargs:Any)->None:
+        if self.state_dict['skip_detect_change']: return False
+        print(f'Detect change cancelled: {exception}')
+        self('cancel_detect_change')
 
     def on_cancel_evolve(self, exception, **kwargs:Any)->None:
         print(f'Evolve cancelled: {exception}')
@@ -246,6 +268,7 @@ class Recorder(Callback):
         ax.set_xlabel('generations')
         ax.set_ylabel('fitness value')
 
+class CancelDetectChangeException(Exception): pass
 class CancelEvolveException(Exception): pass
 class CancelFitnessException(Exception): pass
 class CancelEachConstraintException(Exception): pass
