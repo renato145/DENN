@@ -1,7 +1,7 @@
 from .imports import *
 from .utils import *
 
-__all__ = ['Callback', 'CallbackHandler', 'DynamicConstraint', 'Recorder',
+__all__ = ['Callback', 'CallbackHandler', 'DynamicConstraint', 'Recorder', 'OnChangeRestartPopulation',
            'CancelDetectChangeException', 'CancelEvolveException', 'CancelFitnessException', 'CancelEachConstraintException',
            'CancelConstraintsException', 'CancelGenException', 'CancelRunException']
 
@@ -201,8 +201,17 @@ class CallbackHandler():
         self('cancel_run')
 
 class DynamicConstraint(Callback):
-    def on_each_constraint_begin(self, last_constraint_param, time, **kwargs):
+    def on_each_constraint_begin(self, last_constraint_param:Optional[Collection[float]], time:int, **kwargs:Any)->Dict:
         return {'last_constraint_param': last_constraint_param[time]}
+
+class OnChangeRestartPopulation(Callback):
+    def __init__(self, optim):
+        super().__init__(optim)
+        self.i = 0
+
+    def on_detect_change_end(self, population, change_detected:bool,**kwargs:Any)->None:
+        if change_detected: population.refresh()
+        if change_detected: self.i += 1
 
 class Recorder(Callback):
     _order = 99
@@ -211,12 +220,16 @@ class Recorder(Callback):
         super().__init__(optim)
         self.bests = []
         self.best_times = []
+        self.detected_changes = []
 
     def on_run_begin(self, pbar, metrics, **kwargs):
         self.pbar = pbar
         self.metrics = metrics
         self.pbar.names = metrics
         self.start_time = get_time()
+
+    def on_detect_change_end(self, time:int, change_detected:bool, **kwargs:Any)->None:
+        if change_detected: self.detected_changes.append(time)
 
     def on_gen_end(self, best, **kwargs):
         self.bests.append(best.fitness_value)
