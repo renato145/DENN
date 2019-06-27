@@ -30,6 +30,9 @@ class Individual:
         res.refresh()
         return res
 
+    def zero_data(self):
+        self.data[:] = 0
+
     def refresh(self, *args:Any, **kwargs:Any)->None:
         self.data = self.func(*args, **kwargs)
 
@@ -76,6 +79,10 @@ class Population:
 
     def refresh(self, *args, **kwargs):
         self.individuals = [self.new_individual(*args, **kwargs).assign_idx(i) for i in range(self.n)]
+
+    def test(self):
+        # for indiv in self.individuals: indiv.zero_data()
+        for indiv in self.individuals: indiv.data=0
 
     def __call__(self, func, pbar=None):
         return [func(individual) for individual in progress_bar(self.individuals, parent=pbar)]
@@ -252,13 +259,13 @@ class Runs:
     n_cpus:Optional[int]=None
 
     def __post_init__(self):
-        n_cpus = ifnone(self.n_cpus, cpu_count())
+        self.n_cpus = ifnone(self.n_cpus, cpu_count())
 
     def reset_population(self):
         for opt in self.optimizations: opt.population.refresh()
 
     def run(self, generations):
-        self.optimizations = parallel(partial(_optimization_run, generations=generations), self.optimizations)
+        self.optimizations = parallel(partial(_optimization_run, generations=generations), self.optimizations, max_workers=self.n_cpus)
         self.times_data = self.get_times_data()
 
     @classmethod
