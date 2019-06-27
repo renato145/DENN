@@ -2,7 +2,7 @@ import re, numpy as np, pandas as pd, matplotlib.pyplot as plt, concurrent
 from dataclasses import dataclass
 from pathlib import Path
 from functools import partial
-from typing import Any, Callable, Collection, Optional, Union
+from typing import Any, Callable, Collection, Optional, Union, Dict
 from fastprogress import progress_bar, master_bar
 from fastprogress.fastprogress import MasterBar, ProgressBar, format_time
 from collections import Counter, defaultdict, Iterable
