@@ -107,6 +107,7 @@ class CallbackHandler():
                     self.optim.eval_fitness(i)
                     if self.optim.have_constraints: self.optim.eval_constraints(i)
                     i.gen = self.state_dict['gen']
+                    i.time = self.state_dict['time']
 
                 indiv = population[indiv.idx]
                 self.state_dict['last_indiv'] = indiv
@@ -123,7 +124,7 @@ class CallbackHandler():
     def on_fitness_begin(self, **kwargs:Any)->None:
         self('fitness_begin')
 
-    def on_fitness_end(self, fitness, **kwargs:Any)->None:
+    def on_fitness_end(self, fitness:float, **kwargs:Any)->None:
         indiv = self.state_dict['last_indiv']
         self.state_dict['last_fitness'] = fitness
         self('fitness_end')
@@ -173,6 +174,7 @@ class CallbackHandler():
         new_indiv = self.optim.get_best(indiv, indiv_bkup)
         change = new_indiv != indiv
         new_indiv.gen = self.state_dict['gen']
+        new_indiv.time = self.state_dict['time']
 
         if self.state_dict['best'] is None: self.state_dict['best'] = new_indiv
         else                              : self.state_dict['best'] = self.optim.get_best(new_indiv, self.state_dict['best'])
@@ -240,11 +242,11 @@ class Recorder(Callback):
         self.pbar.names = metrics
         self.start_time = get_time()
 
-    def on_gen_end(self, best, **kwargs):
+    def on_gen_end(self, best:'Individual', **kwargs):
         self.bests.append(best.fitness_value)
 
-    def on_time_change(self, last_indiv, time, show_graph, update_each, **kwargs:Any):
-        self.best_times.append(last_indiv.clone())
+    def on_time_change(self, best:'Individual', time:int, show_graph:bool, update_each:int, **kwargs:Any):
+        self.best_times.append(best.clone())
         if show_graph and (time+1)%update_each==0: self._pbar_plot()
 
     def on_run_end(self, show_graph, show_report, silent, **kwargs):
