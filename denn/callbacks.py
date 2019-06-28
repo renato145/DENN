@@ -102,7 +102,7 @@ class CallbackHandler():
 
             if self.state_dict['change_detected']:
                 population = self.optim.population
-                for i in population:
+                for i in population.individuals + [self.state_dict['best']]:
                     self.state_dict['last_indiv'] = i
                     self.optim.eval_fitness(i)
                     if self.optim.have_constraints: self.optim.eval_constraints(i)
