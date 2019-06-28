@@ -11,6 +11,7 @@ class Individual:
     upper_limit:float
     idx:Optional[int]=None
     gen:Optional[int]=None
+    time:Optional[int]=None
     fitness_value:Optional[float]=None
     constraints:Optional[Collection[float]]=None
     constraints_sum:Optional[float]=None
@@ -49,7 +50,7 @@ class Individual:
 
     def clone(self)->'Individual':
         return self.__class__(dimensions=self.dimensions, lower_limit=self.lower_limit, upper_limit=self.upper_limit,
-                              idx=self.idx, gen=self.gen, fitness_value=self.fitness_value, constraints=self.constraints,
+                              idx=self.idx, gen=self.gen, time=self.time, fitness_value=self.fitness_value, constraints=self.constraints,
                               constraints_sum=self.constraints_sum, is_feasible=self.is_feasible, data=self.data.copy())
 
     def copy_from(self, indiv:'Individual')->None:
@@ -58,6 +59,7 @@ class Individual:
         self.upper_limit = indiv.upper_limit
         self.idx = indiv.idx
         self.gen = indiv.gen
+        self.time = indiv.time
         self.fitness_value = indiv.fitness_value
         self.constraints = indiv.constraints
         self.constraints_sum = indiv.constraints_sum
