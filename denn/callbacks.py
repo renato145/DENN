@@ -86,17 +86,33 @@ class CallbackHandler():
 
     def on_detect_change_begin(self, **kwargs:Any)->None:
         self.state_dict['skip_detect_change'] = False
+        self.state_dict['change_detected'] = False
         if self.state_dict['gen'] == 0:
             self.state_dict['skip_detect_change'] = True
             raise CancelDetectChangeException('Skipping first generation.')
         self('detect_change_begin')
 
-    def on_detect_change_end(self, population, **kwargs:Any)->None:
-        if self.state_dict['skip_detect_change']: return False
-        indiv = self.state_dict['last_indiv']
-        indiv_bkup = self.state_dict['indiv_bkup']
-        self.state_dict['change_detected'] = not (indiv == indiv_bkup)
-        self('detect_change_end', population=population)
+    def on_detect_change_end(self, **kwargs:Any)->None:
+        if not self.state_dict['skip_detect_change']:
+            indiv = self.state_dict['last_indiv']
+            indiv_bkup = self.state_dict['indiv_bkup']
+            self.state_dict['change_detected'] = indiv != indiv_bkup
+            self('detect_change_end')
+            indiv = self.state_dict['last_indiv']
+
+            if self.state_dict['change_detected']:
+                population = self.optim.population
+                for i in population:
+                    self.state_dict['last_indiv'] = i
+                    self.optim.eval_fitness(i)
+                    if self.optim.have_constraints: self.optim.eval_constraints(i)
+                    i.gen = self.state_dict['gen']
+
+                indiv = population[indiv.idx]
+                self.state_dict['last_indiv'] = indiv
+                self.state_dict['indiv_bkup'] = indiv.clone()
+
+        return self.state_dict['last_indiv'],self.state_dict['change_detected']
 
     def on_evolve_begin(self, **kwargs:Any)->None:
         self('evolve_begin')
@@ -151,18 +167,20 @@ class CallbackHandler():
         indiv.constraints_sum = self.optim.get_sum_constraints(indiv)
         indiv.is_feasible = self.optim.eval_feasibility(indiv)
 
-    def on_individual_end(self, **kwargs:Any)->None:
+    def on_individual_end(self, **kwargs:Any)->Tuple['Individual',bool]:
         indiv = self.state_dict['last_indiv']
         indiv_bkup = self.state_dict['indiv_bkup']
         new_indiv = self.optim.get_best(indiv, indiv_bkup)
+        change = new_indiv != indiv
         new_indiv.gen = self.state_dict['gen']
 
         if self.state_dict['best'] is None: self.state_dict['best'] = new_indiv
         else                              : self.state_dict['best'] = self.optim.get_best(new_indiv, self.state_dict['best'])
 
         self.state_dict['new_indiv'] = new_indiv
+        self.state_dict['change_indiv'] = change
         self('individual_end')
-        return self.state_dict['new_indiv']
+        return self.state_dict['new_indiv'],self.state_dict['change_indiv']
 
     def on_gen_end(self, **kwargs:Any)->None:
         self('gen_end')
@@ -205,13 +223,8 @@ class DynamicConstraint(Callback):
         return {'last_constraint_param': last_constraint_param[time]}
 
 class OnChangeRestartPopulation(Callback):
-    def __init__(self, optim):
-        super().__init__(optim)
-        self.i = 0
-
-    def on_detect_change_end(self, population, change_detected:bool,**kwargs:Any)->None:
-        if change_detected: population.refresh()
-        if change_detected: self.i += 1
+    def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->Optional[Dict]:
+        if change_detected: self.optim.population.refresh()
 
 class Recorder(Callback):
     _order = 99
@@ -220,16 +233,12 @@ class Recorder(Callback):
         super().__init__(optim)
         self.bests = []
         self.best_times = []
-        self.detected_changes = []
 
     def on_run_begin(self, pbar, metrics, **kwargs):
         self.pbar = pbar
         self.metrics = metrics
         self.pbar.names = metrics
         self.start_time = get_time()
-
-    def on_detect_change_end(self, time:int, change_detected:bool, **kwargs:Any)->None:
-        if change_detected: self.detected_changes.append(time)
 
     def on_gen_end(self, best, **kwargs):
         self.bests.append(best.fitness_value)
@@ -288,4 +297,3 @@ class CancelEachConstraintException(Exception): pass
 class CancelConstraintsException(Exception): pass
 class CancelGenException(Exception): pass
 class CancelRunException(Exception): pass
-

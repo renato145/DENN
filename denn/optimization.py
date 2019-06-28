@@ -35,6 +35,10 @@ class Individual:
 
     def refresh(self, *args:Any, **kwargs:Any)->None:
         self.data = self.func(*args, **kwargs)
+        self.fitness_value = None
+        self.constraints = None
+        self.constraints_sum = None
+        self.is_feasible = False
 
     def assign_idx(self, idx:int)->'Individual':
         self.idx = idx
@@ -74,15 +78,11 @@ class Population:
     def new_random(cls, n=20, dimension=10, lower_limit=-5, upper_limit=5):
         res = cls(n, dimension)
         res.new_individual = partial(Individual.new_random, dimension, lower_limit, upper_limit)
-        res.refresh()
+        res.individuals = [res.new_individual().assign_idx(i) for i in range(n)]
         return res
 
-    def refresh(self, *args, **kwargs):
-        self.individuals = [self.new_individual(*args, **kwargs).assign_idx(i) for i in range(self.n)]
-
-    def test(self):
-        # for indiv in self.individuals: indiv.zero_data()
-        for indiv in self.individuals: indiv.data=0
+    def refresh(self):
+        for indiv in self.individuals: indiv.refresh()
 
     def __call__(self, func, pbar=None):
         return [func(individual) for individual in progress_bar(self.individuals, parent=pbar)]
@@ -100,6 +100,7 @@ class Optimization:
     beta_max:float=0.8
     max_evals:Optional[int]=None
     metrics:Collection[str]=('fitness',)
+    time_change_detect:bool=True
     time_change_pcts:Collection[float]=(0.0,0.5)
     callbacks:Collection[Callback]=None
 
@@ -191,7 +192,9 @@ class Optimization:
             self.eval_fitness(indiv)
             if self.have_constraints: self.eval_constraints(indiv)
         except CancelDetectChangeException as exception: self.cb_handler.on_cancel_detect_change(exception)
-        finally: self.cb_handler.on_detect_change_end(self.population)
+        finally:
+            new_indiv,changed = self.cb_handler.on_detect_change_end()
+            if changed: indiv.copy_from(new_indiv)
 
     def get_each_constraint(self, indiv):
         try:
@@ -212,20 +215,23 @@ class Optimization:
     def process_individual(self, indiv):
         try:
             self.cb_handler.on_individual_begin(indiv=indiv)
-            if self.have_time and (indiv.idx in self.time_change_checks): self.detect_change(indiv)
+            if self.time_change_detect and self.have_time and (indiv.idx in self.time_change_checks): self.detect_change(indiv)
             self.evolve(indiv)
             self.eval_fitness(indiv)
             if self.have_constraints: self.eval_constraints(indiv)
 
         except CancelGenException as exception: self.cb_handler.on_cancel_individual(exception)
         finally:
-            new_indiv = self.cb_handler.on_individual_end()
-            indiv.copy_from(new_indiv)
+            new_indiv,changed = self.cb_handler.on_individual_end()
+            if changed: indiv.copy_from(new_indiv)
+
+    def process_individuals(self):
+        for indiv in self.population: self.process_individual(indiv)
 
     def run_one_gen(self):
         try:
             self.cb_handler.on_gen_begin()
-            for indiv in self.population: self.process_individual(indiv)
+            self.process_individuals()
 
         except CancelGenException as exception: self.cb_handler.on_cancel_gen(exception)
         finally: self.cb_handler.on_gen_end()
