@@ -7,20 +7,23 @@ from .optimization import *
 __all__ = ['NNTrainer']
 
 class NNTrainer(Callback):
-    def __init__(self, optim:'Optimization', model:nn.Module, window:int=5, min_batches:int=20, bs:int=4,
+    def __init__(self, optim:'Optimization', model:nn.Module, window:int=5, min_batches:int=20, bs:int=4, epochs:int=10,
                  loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam):
         'TODO: add documentation'
         super().__init__(optim)
-        self.model,self.window,self.min_batches,self.bs,self.loss_func = model,window,min_batches,bs,loss_func
+        self.model,self.window,self.min_batches,self.bs,self.epochs,self.loss_func = model,window,min_batches,bs,epochs,loss_func
         self.data,self.train_losses = [],[]
         self.nn_optim = nn_optim(model.parameters())
         self.d = optim.population.dimension
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        self.model.to(self.device)
         
     def on_detect_change_end(self, change_detected:bool, best:Individual, **kwargs:Any):
         if change_detected:
             self.data.append(best.clone())
             if len(self.data)-self.window >= self.min_batches:
                 self.do_train()
+                self.apply_predictions()
 
     def on_run_end(self, **kwargs):
         self.model.eval()
@@ -33,23 +36,36 @@ class NNTrainer(Callback):
             data_x.append(data[i:i+w])
             data_y.append(data[i+w])
         
-        return torch.stack(data_x),torch.stack(data_y)
+        return torch.stack(data_x).to(self.device),torch.stack(data_y).to(self.device)
 
     def do_train(self)->None:
-        bs,model,loss_func,nn_optim = self.bs,self.model,self.loss_func,self.nn_optim
+        bs,epochs,model,loss_func,nn_optim = self.bs,self.epochs,self.model,self.loss_func,self.nn_optim
         model.train()
         data_x,data_y = self.get_train_data()
         n_batches = math.ceil(data_x.size(0)/bs)
         # Train loop
-        for i in range(n_batches):
-            xb,yb = data_x[i*bs:(i+1)*bs],data_y[i*bs:(i+1)*bs]
-            yb_ = model(xb)
-            loss = loss_func(yb,yb_)
-            loss.backward()
-            nn_optim.step()
-            nn_optim.zero_grad()
-            self.train_losses.append(loss.detach().cpu())
+        losses = []
+        for epoch in range(epochs):
+            for i in range(n_batches):
+                xb,yb = data_x[i*bs:(i+1)*bs],data_y[i*bs:(i+1)*bs]
+                yb_ = model(xb)
+                loss = loss_func(yb,yb_)
+                loss.backward()
+                nn_optim.step()
+                nn_optim.zero_grad()
+                losses.append(loss.detach().cpu())
 
-    def get_next_best(self)->Individual:
+        self.train_losses.append(loss.detach().cpu())
+
+    def apply_predictions(self)->None:
+        # Get predictions
+        with torch.no_grad():
+            xb = torch.from_numpy(np.vstack([(e.data) for e in self.data[-self.window:]])).float()[None]
+            pred = self.model.eval()(xb.to(self.device))[0]
+
+        # Add noise
         # TODO
-        return 0
+        pred = pred.cpu().numpy()
+
+        # Modify population
+        for indiv in self.optim.population: indiv.data = pred
