@@ -123,7 +123,9 @@ class CallbackHandler():
         self('evolve_end')
 
     def on_fitness_begin(self, **kwargs:Any)->None:
+        self.state_dict['last_fitness_param'] = []
         self('fitness_begin')
+        return self.state_dict['last_fitness_param']
 
     def on_fitness_end(self, fitness:float, **kwargs:Any)->None:
         indiv = self.state_dict['last_indiv']
@@ -222,8 +224,12 @@ class CallbackHandler():
         self('cancel_run')
 
 class DynamicConstraint(Callback):
-    def on_each_constraint_begin(self, last_constraint_param:Optional[Collection[float]], time:int, **kwargs:Any)->Dict:
+    def on_each_constraint_begin(self, last_constraint_param:optional[collection[float]], time:int, **kwargs:any)->dict:
         return {'last_constraint_param': last_constraint_param[time]}
+
+class DynamicFitnessEvaluation(Callback):
+    def on_fitness_begin(self, last_fitness_param:Optional[Collection[Any]], time:int, **kwargs:any)->dict:
+        return {'last_fitness_param': last_fitness_param[time]}
 
 class OnChangeRestartPopulation(Callback):
     def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->Optional[Dict]:

@@ -176,8 +176,8 @@ class Optimization:
     def eval_fitness(self, indiv):
         fitness = None
         try:
-            self.cb_handler.on_fitness_begin()
-            fitness = self.get_fitness(indiv)
+            args = self.cb_handler.on_fitness_begin()
+            fitness = self.get_fitness(indiv, *args)
         except CancelFitnessException as exception: self.cb_handler.on_fitness_cancel(exception)
         finally:
             evals = self.cb_handler.on_fitness_end(fitness=fitness)
