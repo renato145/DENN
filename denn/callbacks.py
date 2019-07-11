@@ -39,7 +39,7 @@ class Callback():
     def on_cancel_gen(self, **kwargs:Any)->None: pass
     def on_cancel_run(self, **kwargs:Any)->None: pass
 
-def _get_init_state()->dict: return dict(gen=0, evals=0, time=0, best=None)
+def _get_init_state()->dict: return dict(gen=0, evals=0, time=0, gen_evals=0, best=None)
 
 @dataclass
 class CallbackHandler():
@@ -133,6 +133,7 @@ class CallbackHandler():
 
         # eval step
         self.state_dict['evals'] += 1
+        self.state_dict['gen_evals'] += 1
         if self.state_dict['max_evals'] is not None:
             if self.state_dict['max_evals'] <= self.state_dict['evals']: raise CancelRunException('`max_evals` reached.')
 
@@ -186,6 +187,7 @@ class CallbackHandler():
     def on_gen_end(self, **kwargs:Any)->None:
         self('gen_end')
         self.state_dict['gen'] += 1
+        self.state_dict['gen_evals'] = 0
 
     def on_run_end(self, **kwargs:Any)->None:
         self('run_end')
@@ -224,7 +226,7 @@ class OnChangeRestartPopulation(Callback):
         if change_detected: self.optim.population.refresh()
 
 class Recorder(Callback):
-    _order = 99
+    _order = 99 # Needs to run at the end
 
     def __init__(self, optim:'Optimization'):
         super().__init__(optim)
@@ -256,7 +258,7 @@ class Recorder(Callback):
     def optimal_times_constraints(self)->np.ndarray: return self.optim.optimal_sum_constraints
 
     def show_report(self)->None:
-        print('A proper report should be shown here :)')
+        # print('A proper report should be shown here :)')
         print(f'Total time: {self.elapsed}')
 
     def _pbar_plot(self)->None:
