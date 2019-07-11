@@ -7,6 +7,8 @@ from .optimization import *
 __all__ = ['NNTrainer']
 
 class NNTrainer(Callback):
+    _order = 10 # Needs to run after restarting the population 
+
     def __init__(self, optim:'Optimization', model:nn.Module, n:int=3, noise_range:float=0.5, window:int=5, min_batches:int=20,
                  bs:int=4, epochs:int=10, loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam):
         'TODO: add documentation'
