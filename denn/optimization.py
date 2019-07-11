@@ -105,6 +105,8 @@ class Optimization:
     time_change_detect:bool=True
     time_change_pcts:Collection[float]=(0.0,0.5)
     callbacks:Collection[Callback]=None
+    optimal_fitness_values:Optional[Collection[float]]=None
+    optimal_sum_constraints:Optional[Collection[float]]=None
 
     def __post_init__(self):
         self.get_constraints = listify(self.get_constraints)

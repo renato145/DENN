@@ -250,6 +250,10 @@ class Recorder(Callback):
     def best_times_fitness(self)->np.ndarray: return np.asarray([e.fitness_value for e in self.best_times])
     @property
     def best_times_constraints(self)->np.ndarray: return np.asarray([e.constraints_sum for e in self.best_times])
+    @property
+    def optimal_times_fitness(self)->np.ndarray: return self.optim.optimal_fitness_values
+    @property
+    def optimal_times_constraints(self)->np.ndarray: return self.optim.optimal_sum_constraints
 
     def show_report(self)->None:
         print('A proper report should be shown here :)')
@@ -262,18 +266,31 @@ class Recorder(Callback):
         x = np.arange(len(self.best_times_fitness))
         return [[x,self.best_times_fitness]]
 
-    def plot(self, ax:Optional[plt.Axes]=None, figsize:Tuple[int,int]=(8,5), **kwargs:Any)->plt.Axes:
+    def plot(self, figsize:Tuple[int,int]=(10,7), **kwargs:Any)->Collection[plt.Axes]:
+        fig,axs = plt.subplots(2, 1, figsize=figsize)
+        self.plot_fitness(axs[0])
+        self.plot_constraints(axs[1])
+        plt.tight_layout()
+        return axs
+
+    def plot_fitness(self, ax:Optional[plt.Axes]=None, figsize:Tuple[int,int]=(8,5), title:str='Fitness values', **kwargs:Any)->plt.Axes:
         if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
-        ax.plot(self.best_times_fitness, **kwargs)
+        ax.plot(self.best_times_fitness, label='results', **kwargs)
+        if self.optimal_times_fitness is not None: ax.plot(self.optimal_times_fitness, label='optimal')
         ax.set_xlabel('times')
         ax.set_ylabel('fitness value')
+        ax.set_title(title)
+        ax.legend()
         return ax
     
-    def plot_constraints(self, ax:Optional[plt.Axes]=None, figsize:Tuple[int,int]=(8,5), **kwargs:Any)->plt.Axes:
+    def plot_constraints(self, ax:Optional[plt.Axes]=None, figsize:Tuple[int,int]=(8,5), title:str='Sum of constraints', **kwargs:Any)->plt.Axes:
         if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
-        ax.plot(self.best_times_constraints, **kwargs)
+        ax.plot(self.best_times_constraints, label='results', **kwargs)
+        if self.optimal_times_constraints is not None: ax.plot(self.optimal_times_constraints, label='optimal')
         ax.set_xlabel('times')
         ax.set_ylabel('sum of constraitns')
+        ax.set_title(title)
+        ax.legend()
         return ax
 
 class CancelDetectChangeException(Exception): pass
