@@ -16,9 +16,9 @@ class Individual:
     constraints:Optional[Collection[float]]=None
     constraints_sum:Optional[float]=None
     is_feasible:Optional[bool]=False
-    data:Optional[np.array]=None
+    data:Optional[np.ndarray]=None
 
-    def __eq__(self, other:'Individual'):
+    def __eq__(self, other:'Individual')->bool:
         if not all(self.data == other.data): return False
         if not (self.fitness_value == other.fitness_value): return False
         if not all(i==j for i,j in zip(self.constraints,other.constraints)): return False
@@ -31,7 +31,7 @@ class Individual:
         res.refresh()
         return res
 
-    def zero_data(self):
+    def zero_data(self)->None:
         self.data[:] = 0
 
     def refresh(self, *args:Any, **kwargs:Any)->None:
@@ -71,22 +71,22 @@ class Population:
     n:int
     dimension:int
 
-    def __getitem__(self, idx): return self.individuals[idx]
-    def __setitem__(self, idx, val): self.individuals[idx] = val
-    def __len__(self): return len(self.individuals)
+    def __getitem__(self, idx:int)->Individual: return self.individuals[idx]
+    def __setitem__(self, idx:int, val:Individual)->None: self.individuals[idx] = val
+    def __len__(self)->int: return len(self.individuals)
     def __iter__(self): return iter(self.individuals)
 
     @classmethod
-    def new_random(cls, n=20, dimension=10, lower_limit=-5, upper_limit=5):
+    def new_random(cls, n:int=20, dimension:int=10, lower_limit:float=-5, upper_limit:float=5)->Collection[Individual]:
         res = cls(n, dimension)
         res.new_individual = partial(Individual.new_random, dimension, lower_limit, upper_limit)
         res.individuals = [res.new_individual().assign_idx(i) for i in range(n)]
         return res
 
-    def refresh(self):
+    def refresh(self)->None:
         for indiv in self.individuals: indiv.refresh()
 
-    def __call__(self, func, pbar=None):
+    def __call__(self, func:Callable, pbar:Optional[PBar]=None)->Collection[Any]:
         return [func(individual) for individual in progress_bar(self.individuals, parent=pbar)]
 
 @dataclass
@@ -122,19 +122,19 @@ class Optimization:
         self.cb_handler = CallbackHandler(self, self.callbacks)
 
     @property
-    def state_dict(self): return self.cb_handler.state_dict
+    def state_dict(self)->dict: return self.cb_handler.state_dict
     @property
-    def best(self): return self.state_dict['best']
+    def best(self)->Individual: return self.state_dict['best']
     @property
-    def time(self): return self.state_dict['time']
+    def time(self)->int: return self.state_dict['time']
 
-    def _get_best(self, indiv1, indiv2):
+    def _get_best(self, indiv1:Individual, indiv2:Individual)->Individual:
         return indiv1 if indiv1.fitness_value <= indiv2.fitness_value else indiv2
 
-    def _get_lowest_constraint(self, indiv1, indiv2):
+    def _get_lowest_constraint(self, indiv1:Individual, indiv2:Individual)->Individual:
         return indiv1 if indiv1.constraints_sum <= indiv2.constraints_sum else indiv2
 
-    def _get_best_constraints(self, indiv1, indiv2):
+    def _get_best_constraints(self, indiv1:Individual, indiv2:Individual)->Individual:
         'Feasibility rules method.'
         if indiv1.is_feasible:
             if indiv2.is_feasible: return self._get_best(indiv1, indiv2)              # Both are feasible
@@ -143,19 +143,19 @@ class Optimization:
             if indiv2.is_feasible: return indiv2                                      # Only indiv2 is feasible
             else                 : return self._get_lowest_constraint(indiv1, indiv2) # Both are unfeasible
 
-    def get_best(self, indiv1, indiv2):
+    def get_best(self, indiv1:Individual, indiv2:Individual)->Individual:
         fn = self._get_best_constraints if self.have_constraints else self._get_best
         return fn(indiv1, indiv2)
 
-    def get_sum_constraints(self, indiv):
+    def get_sum_constraints(self, indiv:Individual)->float:
         constraints = np.array(indiv.constraints)
         constraints[constraints<0] = 0
         return sum(constraints)
 
-    def eval_feasibility(self, indiv):
+    def eval_feasibility(self, indiv:Individual)->bool:
         return indiv.constraints_sum == 0
 
-    def _evolve(self, indiv):
+    def _evolve(self, indiv:Individual)->None:
         dims = indiv.dimensions
         jrand = np.random.randint(dims)
         crs = np.argwhere(np.random.rand(dims) < self.CR)[:,0].tolist()
@@ -168,14 +168,14 @@ class Optimization:
             indiv.data[picked_dims] = new_data
             indiv.clip_limits()
 
-    def evolve(self, indiv):
+    def evolve(self, indiv:Individual)->None:
         try:
             self.cb_handler.on_evolve_begin()
             self._evolve(indiv)
         except CancelEvolveException as exception: self.cb_handler.on_cancel_evolve(exception)
         finally: self.cb_handler.on_evolve_end()
 
-    def eval_fitness(self, indiv):
+    def eval_fitness(self, indiv:Individual)->None:
         fitness = None
         try:
             self.cb_handler.on_fitness_begin()
@@ -185,12 +185,12 @@ class Optimization:
             evals = self.cb_handler.on_fitness_end(fitness=fitness)
             self.change_time(evals)
 
-    def change_time(self, evals):
+    def change_time(self, evals:int)->None:
         if self.have_time:
             if evals % self.frequency == 0:
                 self.cb_handler.on_time_change()
 
-    def detect_change(self, indiv):
+    def detect_change(self, indiv:Individual)->None:
         try:
             self.cb_handler.on_detect_change_begin()
             self.eval_fitness(indiv)
@@ -201,7 +201,7 @@ class Optimization:
             new_indiv,changed = self.cb_handler.on_detect_change_end()
             if changed: indiv.copy_from(new_indiv)
 
-    def get_each_constraint(self, indiv):
+    def get_each_constraint(self, indiv:Individual)->None:
         try:
             for fn,b in zip(self.get_constraints,self.constraint_params):
                 self.cb_handler.on_each_constraint_begin()
@@ -210,7 +210,7 @@ class Optimization:
 
         except CancelEachConstraintException as exception: self.cb_handler.on_cancel_each_constraint(exception)
 
-    def eval_constraints(self, indiv):
+    def eval_constraints(self, indiv:Individual)->None:
         try:
             self.cb_handler.on_constraints_begin()
             self.get_each_constraint(indiv)
@@ -218,7 +218,7 @@ class Optimization:
         except CancelConstraintsException as exception: self.cb_handler.on_cancel_constraints(exception)
         finally: self.cb_handler.on_constraints_end()
 
-    def process_individual(self, indiv):
+    def process_individual(self, indiv:Individual)->None:
         try:
             self.cb_handler.on_individual_begin(indiv=indiv)
             if self.time_change_detect and self.have_time and (indiv.idx in self.time_change_checks): self.detect_change(indiv)
@@ -231,10 +231,10 @@ class Optimization:
             new_indiv,changed = self.cb_handler.on_individual_end()
             if changed: indiv.copy_from(new_indiv)
 
-    def process_individuals(self):
+    def process_individuals(self)->None:
         for indiv in self.population: self.process_individual(indiv)
 
-    def run_one_gen(self):
+    def run_one_gen(self)->None:
         try:
             self.cb_handler.on_gen_begin()
             self.process_individuals()
@@ -242,7 +242,7 @@ class Optimization:
         except CancelGenException as exception: self.cb_handler.on_cancel_gen(exception)
         finally: self.cb_handler.on_gen_end()
 
-    def run(self, generations, show_graph=True, update_each=10, show_report=True, silent=False):
+    def run(self, generations:int, show_graph:bool=True, update_each:int=10, show_report:bool=True, silent:bool=False)->None:
         pbar = master_bar(range(1))
         try:
             self.cb_handler.on_run_begin(generations, pbar, self.max_evals, self.max_times, self.frequency,
@@ -253,14 +253,14 @@ class Optimization:
         except CancelRunException as exception: self.cb_handler.on_cancel_run(exception)
         finally: self.cb_handler.on_run_end()
 
-    def clone(self): return deepcopy(self)
+    def clone(self)->'Optimization': return deepcopy(self)
 
-    def create_multiple_runs(self, n_runs, **kwargs):
+    def create_multiple_runs(self, n_runs:int, **kwargs:Any)->'Runs':
         runs = Runs.from_template([self.clone() for _ in range(n_runs)], **kwargs)
         runs.reset_population()
         return runs
 
-def _optimization_run(opt, i, generations):
+def _optimization_run(opt:Optimization, i:int, generations:int)->Optimization:
     opt.run(generations, silent=True)
     return opt
 
@@ -273,20 +273,19 @@ class Runs:
     def __post_init__(self):
         self.n_cpus = ifnone(self.n_cpus, cpu_count())
 
-    def reset_population(self):
+    def reset_population(self)->None:
         for opt in self.optimizations: opt.population.refresh()
 
-    def run(self, generations):
+    def run(self, generations:int)->None:
         self.optimizations = parallel(partial(_optimization_run, generations=generations), self.optimizations, max_workers=self.n_cpus)
         self.times_data = self.get_times_data()
 
     @classmethod
-    def from_template(cls, optimizations, **kwargs):
+    def from_template(cls, optimizations:Collection[Optimization], **kwargs:Any)->'Runs':
         return cls(optimizations, **kwargs)
 
-    def get_times_data(self):
+    def get_times_data(self)->pd.DataFrame:
         times_data = np.stack([e.recorder.best_times_fitness for e in self.optimizations])
         df = pd.DataFrame(times_data.T)
         df.columns = [f'run_{i+1}' for i in range(df.shape[1])]
         return df
-
