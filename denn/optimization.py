@@ -101,7 +101,6 @@ class Optimization:
     beta_min:float=0.2
     beta_max:float=0.8
     max_evals:Optional[int]=None
-    metrics:Collection[str]=('fitness',)
     time_change_detect:bool=True
     time_change_pcts:Collection[float]=(0.0,0.5)
     callbacks:Collection[Callback]=None
@@ -241,7 +240,7 @@ class Optimization:
     def run(self, generations, show_graph=True, update_each=10, show_report=True, silent=False):
         pbar = master_bar(range(1))
         try:
-            self.cb_handler.on_run_begin(generations, pbar, self.metrics, self.max_evals, self.max_times, self.frequency,
+            self.cb_handler.on_run_begin(generations, pbar, self.max_evals, self.max_times, self.frequency,
                                          show_graph=show_graph, update_each=update_each, show_report=show_report, silent=silent)
             for _ in pbar:
                 for gen in progress_bar(range(generations), parent=pbar): self.run_one_gen()

@@ -62,12 +62,12 @@ class CallbackHandler():
     def __call__(self, cb_name, **kwargs):
         for cb in self.callbacks: self._call_and_update(cb, cb_name, **kwargs)
 
-    def on_run_begin(self, generations:int, pbar:PBar, metrics:Collection[str], max_evals:Optional[int], max_times:Optional[int],
+    def on_run_begin(self, generations:int, pbar:PBar, max_evals:Optional[int], max_times:Optional[int],
                      frequency:Optional[int], show_graph:bool, update_each:int, show_report:bool, silent:bool)->None:
         gen_end = generations + self.state_dict['gen'] - 1
         update_each = min(update_each, generations)
         if silent: show_graph = show_report = False
-        self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, metrics=metrics, max_evals=max_evals, max_times=max_times,
+        self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, max_evals=max_evals, max_times=max_times,
                                     frequency=frequency, show_graph=show_graph, update_each=update_each, show_report=show_report, silent=silent))
         self('run_begin')
 
@@ -224,7 +224,7 @@ class CallbackHandler():
         self('cancel_run')
 
 class DynamicConstraint(Callback):
-    def on_each_constraint_begin(self, last_constraint_param:optional[collection[float]], time:int, **kwargs:any)->dict:
+    def on_each_constraint_begin(self, last_constraint_param:Optional[Collection[float]], time:int, **kwargs:any)->dict:
         return {'last_constraint_param': last_constraint_param[time]}
 
 class DynamicFitnessEvaluation(Callback):
@@ -243,10 +243,9 @@ class Recorder(Callback):
         self.bests = []
         self.best_times = []
 
-    def on_run_begin(self, pbar, metrics, **kwargs):
+    def on_run_begin(self, pbar, **kwargs):
         self.pbar = pbar
-        self.metrics = metrics
-        self.pbar.names = metrics
+        self.pbar.names = ['fitness']
         self.start_time = get_time()
 
     def on_gen_end(self, best:'Individual', **kwargs):
