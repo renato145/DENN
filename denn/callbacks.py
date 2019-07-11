@@ -1,7 +1,7 @@
 from .imports import *
 from .utils import *
 
-__all__ = ['Callback', 'CallbackHandler', 'DynamicConstraint', 'Recorder', 'OnChangeRestartPopulation',
+__all__ = ['Callback', 'CallbackHandler', 'Recorder', 'OnChangeRestartPopulation',
            'CancelDetectChangeException', 'CancelEvolveException', 'CancelFitnessException', 'CancelEachConstraintException',
            'CancelConstraintsException', 'CancelGenException', 'CancelRunException']
 
@@ -123,9 +123,7 @@ class CallbackHandler():
         self('evolve_end')
 
     def on_fitness_begin(self, **kwargs:Any)->None:
-        self.state_dict['last_fitness_param'] = []
         self('fitness_begin')
-        return self.state_dict['last_fitness_param']
 
     def on_fitness_end(self, fitness:float, **kwargs:Any)->None:
         indiv = self.state_dict['last_indiv']
@@ -152,10 +150,8 @@ class CallbackHandler():
         indiv.constraints = []
         self('constraints_begin')
 
-    def on_each_constraint_begin(self, b, **kwargs:Any)->Any:
-        self.state_dict['last_constraint_param'] = b
+    def on_each_constraint_begin(self, **kwargs:Any)->None:
         self('each_constraint_begin')
-        return self.state_dict['last_constraint_param']
 
     def on_each_constraint_end(self, constraint, **kwargs:Any)->None:
         indiv = self.state_dict['last_indiv']
@@ -222,14 +218,6 @@ class CallbackHandler():
     def on_cancel_run(self, exception, **kwargs:Any)->None:
         print(f'Run cancelled: {exception}')
         self('cancel_run')
-
-class DynamicConstraint(Callback):
-    def on_each_constraint_begin(self, last_constraint_param:Optional[Collection[float]], time:int, **kwargs:any)->dict:
-        return {'last_constraint_param': last_constraint_param[time]}
-
-class DynamicFitnessEvaluation(Callback):
-    def on_fitness_begin(self, last_fitness_param:Optional[Collection[Any]], time:int, **kwargs:any)->dict:
-        return {'last_fitness_param': last_fitness_param[time]}
 
 class OnChangeRestartPopulation(Callback):
     def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->Optional[Dict]:

@@ -94,7 +94,8 @@ class Optimization:
     population:Population
     get_fitness:Callable
     get_constraints:Union[Callable,Collection[Callable]]=None
-    constraint_params:Union[Any,Collection[Any]]=None
+    fitness_params:Optional[Any]=None
+    constraint_params:Optional[Any]=None
     max_times:Optional[int]=None
     frequency:Optional[int]=None
     CR:float=0.3
@@ -124,6 +125,8 @@ class Optimization:
     def state_dict(self): return self.cb_handler.state_dict
     @property
     def best(self): return self.state_dict['best']
+    @property
+    def time(self): return self.state_dict['time']
 
     def _get_best(self, indiv1, indiv2):
         return indiv1 if indiv1.fitness_value <= indiv2.fitness_value else indiv2
@@ -175,8 +178,8 @@ class Optimization:
     def eval_fitness(self, indiv):
         fitness = None
         try:
-            args = self.cb_handler.on_fitness_begin()
-            fitness = self.get_fitness(indiv, *args)
+            self.cb_handler.on_fitness_begin()
+            fitness = self.get_fitness(indiv, self.fitness_params, self.time)
         except CancelFitnessException as exception: self.cb_handler.on_fitness_cancel(exception)
         finally:
             evals = self.cb_handler.on_fitness_end(fitness=fitness)
@@ -192,6 +195,7 @@ class Optimization:
             self.cb_handler.on_detect_change_begin()
             self.eval_fitness(indiv)
             if self.have_constraints: self.eval_constraints(indiv)
+
         except CancelDetectChangeException as exception: self.cb_handler.on_cancel_detect_change(exception)
         finally:
             new_indiv,changed = self.cb_handler.on_detect_change_end()
@@ -200,9 +204,10 @@ class Optimization:
     def get_each_constraint(self, indiv):
         try:
             for fn,b in zip(self.get_constraints,self.constraint_params):
-                b = self.cb_handler.on_each_constraint_begin(b=b)
-                constraint = fn(indiv, b)
+                self.cb_handler.on_each_constraint_begin()
+                constraint = fn(indiv, b, self.time)
                 self.cb_handler.on_each_constraint_end(constraint=constraint)
+
         except CancelEachConstraintException as exception: self.cb_handler.on_cancel_each_constraint(exception)
 
     def eval_constraints(self, indiv):
