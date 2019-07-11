@@ -34,10 +34,13 @@ class SpeedMetric(ThreadholdMetric):
         assert optim.optimal_fitness_values is not None, 'No optimal fitness values were given.'
         super().__init__(optim)
         self.threadhold = threadhold
-        self.metrics = dict()
+        self.metrics = -np.ones(self.optim.max_times)
+        self.success_rate = 0.0
 
     def on_gen_end(self, threadhold_reached:bool, threadhold_value:float, time:int, time_evals:int, **kwargs:Any)->Optional[dict]:
         if not threadhold_reached:
             if threadhold_value >= self.threadhold:
                 self.metrics[time] = time_evals
                 return {'threadhold_reached':True}
+
+    def on_run_end(self, **kwargs:Any)->None: self.success_rate = sum(self.metrics > -1) / len(self.metrics)
