@@ -8,12 +8,12 @@ __all__ = ['Callback', 'CallbackHandler', 'Recorder', 'OnChangeRestartPopulation
 class Callback():
     _order = 0
 
-    def __init__(self, optim):
+    def __init__(self, optim:'Optimization'):
         self.optim = optim
         setattr(self.optim, self.cb_name, self)
 
     @property
-    def cb_name(self): return camel2snake(self.__class__.__name__)
+    def cb_name(self)->str: return camel2snake(self.__class__.__name__)
     def on_run_begin(self, **kwargs:Any)->None: pass
     def on_gen_begin(self, **kwargs:Any)->None: pass
     def on_individual_begin(self, **kwargs:Any)->None: pass
@@ -39,7 +39,7 @@ class Callback():
     def on_cancel_gen(self, **kwargs:Any)->None: pass
     def on_cancel_run(self, **kwargs:Any)->None: pass
 
-def _get_init_state(): return dict(gen=0, evals=0, time=0, best=None)
+def _get_init_state()->dict: return dict(gen=0, evals=0, time=0, best=None)
 
 @dataclass
 class CallbackHandler():
@@ -51,7 +51,7 @@ class CallbackHandler():
         self.callbacks = sorted(self.callbacks, key=lambda o: getattr(o, '_order', 0))
         self.state_dict = _get_init_state()
 
-    def _call_and_update(self, cb, cb_name, **kwargs):
+    def _call_and_update(self, cb:Callback, cb_name:str, **kwargs:Any)->None:
         "Call `cb_name` on `cb` and update the inner state."
         new = ifnone(getattr(cb, f'on_{cb_name}')(**self.state_dict, **kwargs), dict())
         for k,v in new.items():
@@ -59,7 +59,7 @@ class CallbackHandler():
                 raise Exception(f"{k} isn't a valid key in the state of the callbacks.")
             else: self.state_dict[k] = v
 
-    def __call__(self, cb_name, **kwargs):
+    def __call__(self, cb_name:str, **kwargs:Any)->None:
         for cb in self.callbacks: self._call_and_update(cb, cb_name, **kwargs)
 
     def on_run_begin(self, generations:int, pbar:PBar, max_evals:Optional[int], max_times:Optional[int],
@@ -75,7 +75,7 @@ class CallbackHandler():
         self.state_dict['is_final_gen'] = self.state_dict['gen']==self.state_dict['gen_end']
         self('gen_begin')
 
-    def on_individual_begin(self, indiv, **kwargs:Any)->None:
+    def on_individual_begin(self, indiv:'Individual', **kwargs:Any)->None:
         self.state_dict['last_indiv'] = indiv
         if indiv.fitness_value is None:
             self.optim.eval_fitness(indiv)
@@ -153,7 +153,7 @@ class CallbackHandler():
     def on_each_constraint_begin(self, **kwargs:Any)->None:
         self('each_constraint_begin')
 
-    def on_each_constraint_end(self, constraint, **kwargs:Any)->None:
+    def on_each_constraint_end(self, constraint:float, **kwargs:Any)->None:
         indiv = self.state_dict['last_indiv']
         self.state_dict['last_each_constraint'] = constraint
         self('each_constraint_end')
@@ -190,32 +190,32 @@ class CallbackHandler():
     def on_run_end(self, **kwargs:Any)->None:
         self('run_end')
 
-    def on_cancel_detect_change(self, exception, **kwargs:Any)->None:
+    def on_cancel_detect_change(self, exception:Exception, **kwargs:Any)->None:
         if self.state_dict['skip_detect_change']: return False
         print(f'Detect change cancelled: {exception}')
         self('cancel_detect_change')
 
-    def on_cancel_evolve(self, exception, **kwargs:Any)->None:
+    def on_cancel_evolve(self, exception:Exception, **kwargs:Any)->None:
         print(f'Evolve cancelled: {exception}')
         self('cancel_evolve')
 
-    def on_cancel_fitness(self, exception, **kwargs:Any)->None:
+    def on_cancel_fitness(self, exception:Exception, **kwargs:Any)->None:
         print(f'Fitness cancelled: {exception}')
         self('cancel_fitness')
 
-    def on_cancel_each_constraint(self, exception, **kwargs:Any)->None:
+    def on_cancel_each_constraint(self, exception:Exception, **kwargs:Any)->None:
         print(f'Each_constraint cancelled: {exception}')
         self('cancel_each_constraint')
 
-    def on_cancel_constraints(self, exception, **kwargs:Any)->None:
+    def on_cancel_constraints(self, exception:Exception, **kwargs:Any)->None:
         print(f'Constraints cancelled: {exception}')
         self('cancel_constraints')
 
-    def on_cancel_gen(self, exception, **kwargs:Any)->None:
+    def on_cancel_gen(self, exception:Exception, **kwargs:Any)->None:
         print(f'Gen cancelled: {exception}')
         self('cancel_gen')
 
-    def on_cancel_run(self, exception, **kwargs:Any)->None:
+    def on_cancel_run(self, exception:Exception, **kwargs:Any)->None:
         print(f'Run cancelled: {exception}')
         self('cancel_run')
 
@@ -226,65 +226,55 @@ class OnChangeRestartPopulation(Callback):
 class Recorder(Callback):
     _order = 99
 
-    def __init__(self, optim):
+    def __init__(self, optim:'Optimization'):
         super().__init__(optim)
-        self.bests = []
         self.best_times = []
 
-    def on_run_begin(self, pbar, **kwargs):
+    def on_run_begin(self, pbar:PBar, **kwargs:Any)->None:
         self.pbar = pbar
         self.pbar.names = ['fitness']
         self.start_time = get_time()
 
-    def on_gen_end(self, best:'Individual', **kwargs):
-        self.bests.append(best.fitness_value)
-
-    def on_time_change(self, best:'Individual', time:int, show_graph:bool, update_each:int, **kwargs:Any):
+    def on_time_change(self, best:'Individual', time:int, show_graph:bool, update_each:int, **kwargs:Any)->None:
         self.best_times.append(best.clone())
         if show_graph and (time+1)%update_each==0: self._pbar_plot()
 
-    def on_run_end(self, show_graph, show_report, silent, **kwargs):
+    def on_run_end(self, show_graph:bool, show_report:bool, silent:bool, **kwargs:Any)->None:
         self.elapsed = format_time(get_time() - self.start_time)
-        if show_graph: self._pbar_plot()
-        if not silent: clear_output()
-        if show_report: self.show_report()
+        if not silent:
+            clear_output()
+            if show_graph: self._pbar_plot()
+            if show_report: self.show_report()
 
     @property
-    def best(self): return min(self.bests)
-
+    def best_times_fitness(self)->np.ndarray: return np.asarray([e.fitness_value for e in self.best_times])
     @property
-    def best_with_idx(self):
-        idx = np.argmin(self.bests)
-        return (idx, self.bests[idx])
+    def best_times_constraints(self)->np.ndarray: return np.asarray([e.constraints_sum for e in self.best_times])
 
-    @property
-    def best_times_fitness(self): return np.asarray([e.fitness_value for e in self.best_times])
-
-    def show_report(self):
+    def show_report(self)->None:
         print('A proper report should be shown here :)')
         print(f'Total time: {self.elapsed}')
 
-    def _pbar_plot(self):
+    def _pbar_plot(self)->None:
         self.pbar.update_graph(self.get_plot_data(), x_bounds=(0,self.optim.max_times))
 
-    def get_plot_data(self):
+    def get_plot_data(self)->list:
         x = np.arange(len(self.best_times_fitness))
         return [[x,self.best_times_fitness]]
 
-    def plot_times(self, ax=None, figsize=(8,5), **kwargs):
+    def plot(self, ax:Optional[plt.Axes]=None, figsize:Tuple[int,int]=(8,5), **kwargs:Any)->plt.Axes:
         if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
         ax.plot(self.best_times_fitness, **kwargs)
         ax.set_xlabel('times')
         ax.set_ylabel('fitness value')
-
-    def plot_generations(self, ax=None, alpha=0.75, size=100, color='green', figsize=(8,5)):
+        return ax
+    
+    def plot_constraints(self, ax:Optional[plt.Axes]=None, figsize:Tuple[int,int]=(8,5), **kwargs:Any)->plt.Axes:
         if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
-        ax.plot(self.bests, alpha=alpha)
-        idx,best = self.best_with_idx
-        ax.scatter(idx, best, s=size, c=color)
-        ax.set_title(f'Best fitness value: {best:.2f}\nGeneration: {idx}')
-        ax.set_xlabel('generations')
-        ax.set_ylabel('fitness value')
+        ax.plot(self.best_times_constraints, **kwargs)
+        ax.set_xlabel('times')
+        ax.set_ylabel('sum of constraitns')
+        return ax
 
 class CancelDetectChangeException(Exception): pass
 class CancelEvolveException(Exception): pass
