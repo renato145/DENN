@@ -39,7 +39,7 @@ class Callback():
     def on_cancel_gen(self, **kwargs:Any)->None: pass
     def on_cancel_run(self, **kwargs:Any)->None: pass
 
-def _get_init_state()->dict: return dict(gen=0, evals=0, time=0, gen_evals=0, best=None)
+def _get_init_state()->dict: return dict(gen=0, evals=0, time=0, time_evals=0, best=None)
 
 @dataclass
 class CallbackHandler():
@@ -133,7 +133,7 @@ class CallbackHandler():
 
         # eval step
         self.state_dict['evals'] += 1
-        self.state_dict['gen_evals'] += 1
+        self.state_dict['time_evals'] += 1
         if self.state_dict['max_evals'] is not None:
             if self.state_dict['max_evals'] <= self.state_dict['evals']: raise CancelRunException('`max_evals` reached.')
 
@@ -142,9 +142,14 @@ class CallbackHandler():
 
     def on_time_change(self, **kwargs:Any)->None:
         self.state_dict['time'] += 1
-        self('time_change')
+        max_time_reached = False
         if self.state_dict['max_times'] is not None:
-            if self.state_dict['max_times'] <= self.state_dict['time']: raise CancelRunException('`max_time` reached.')
+            if self.state_dict['max_times'] <= self.state_dict['time']: max_time_reached = True
+
+        self.state_dict['max_time_reached'] = max_time_reached
+        self('time_change')
+        self.state_dict['time_evals'] = 0
+        if self.state_dict['max_time_reached']: raise CancelRunException('`max_time` reached.')
 
     def on_constraints_begin(self, **kwargs:Any)->None:
         indiv = self.state_dict['last_indiv']
@@ -187,7 +192,6 @@ class CallbackHandler():
     def on_gen_end(self, **kwargs:Any)->None:
         self('gen_end')
         self.state_dict['gen'] += 1
-        self.state_dict['gen_evals'] = 0
 
     def on_run_end(self, **kwargs:Any)->None:
         self('run_end')
@@ -222,7 +226,7 @@ class CallbackHandler():
         self('cancel_run')
 
 class OnChangeRestartPopulation(Callback):
-    def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->Optional[Dict]:
+    def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->None:
         if change_detected: self.optim.population.refresh()
 
 class Recorder(Callback):

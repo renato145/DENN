@@ -1,4 +1,5 @@
 from .imports import *
+from .metrics import *
 from .callbacks import *
 from .utils import *
 
@@ -104,7 +105,8 @@ class Optimization:
     max_evals:Optional[int]=None
     time_change_detect:bool=True
     time_change_pcts:Collection[float]=(0.0,0.5)
-    callbacks:Collection[Callback]=None
+    callbacks:Optional[Collection[Callback]]=None
+    metrics:Optional[Collection[Metric]]=None
     optimal_fitness_values:Optional[Collection[float]]=None
     optimal_sum_constraints:Optional[Collection[float]]=None
 
@@ -120,8 +122,9 @@ class Optimization:
             if self.frequency is None: raise Exception('You need to specify `frequency` when giving `max_times`.')
             self.time_change_checks = [int(self.population.n*e) for e in self.time_change_pcts]
 
-        self.callbacks = [Recorder(self)] + [e(self) for e in listify(self.callbacks)]
+        self.callbacks = [Recorder(self)] + [e(self) for e in listify(self.callbacks)] + [e(self) for e in get_metrics(self.metrics)]
         self.cb_handler = CallbackHandler(self, self.callbacks)
+        self.metrics = [e for e in self.callbacks if isinstance(e, Metric)]
 
     @property
     def state_dict(self)->dict: return self.cb_handler.state_dict
