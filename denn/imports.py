@@ -10,8 +10,7 @@ from numba import jit
 from time import time as get_time
 from multiprocessing import cpu_count
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from IPython.display import clear_output
+from IPython.display import clear_output, HTML
 from copy import deepcopy
-
 Path.ls = lambda x: list(x.iterdir())
 PBar = Union[MasterBar, ProgressBar]
