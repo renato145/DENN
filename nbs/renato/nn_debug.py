@@ -41,7 +41,10 @@ speed_metric = partial(SpeedMetric, threadhold=0.1)
 
 opt = Optimization(population, fitness_func, constraint_func, constraint_params=[ab],
                    max_times=max_times, frequency=frequency, callbacks=[],
-                   metrics=[speed_metric, ModifiedOfflineError, ModifiedOfflineErrorContraints],
+                   metrics=[speed_metric, ModifiedOfflineError, ModifiedOfflineErrorConstraints],
                    optimal_fitness_values=bestKnow, optimal_sum_constraints=bestKnow_sum_constraints)
 
 opt.run(total_generations, silent=True)
+print(opt.speed_metric)
+print(opt.modified_offline_error)
+print(opt.modified_offline_error_constraints)

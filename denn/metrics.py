@@ -2,7 +2,7 @@ from .imports import *
 from .callbacks import *
 from .utils import *
 
-__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'ModifiedOfflineError', 'ModifiedOfflineErrorContraints']
+__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'ModifiedOfflineError', 'ModifiedOfflineErrorConstraints']
 
 def get_metrics(metrics:Optional[Collection['Metric']])->Collection[Optional['Metric']]:
     metrics = listify(metrics)
@@ -12,9 +12,9 @@ def get_metrics(metrics:Optional[Collection['Metric']])->Collection[Optional['Me
 
 class Metric(Callback):
     _order = 90 # Needs to run before Recorder
+    def __repr__(self)->str: return f'{self.__class__.__name__}: {self.metrics:.4f}'
     def optimal_fitness(self, time:int)->float: return self.optim.optimal_fitness_values[time]
-    def __repr__(self)->str:
-        return f'{self.__class__.__name__}: {self.metrics:.4f}'
+    def get_worse(self)->'Individual':  return self.optim.population.get_worse()
 
 class ThreadholdMetric(Metric): pass
 
@@ -50,6 +50,9 @@ class SpeedMetric(ThreadholdMetric):
     def on_run_end(self, **kwargs:Any)->None:
         self.metrics = sum(self.speeds > -1) / len(self.speeds)
 
+    def plot(self)->None:
+        pass
+
 class ModifiedOfflineError(Metric):
     def __init__(self, optim:'Optimization'):
         '''Get the absolute value of the deviation of the best solution found and optimal value of this time at each generation,
@@ -63,7 +66,7 @@ class ModifiedOfflineError(Metric):
     def on_run_end(self, evals:int, **kwargs:Any)->None:
         self.metrics /= evals
 
-class ModifiedOfflineErrorContraints(ModifiedOfflineError):
+class ModifiedOfflineErrorConstraints(ModifiedOfflineError):
     def __init__(self, optim:'Optimization'):
         '''Modification of `ModifiedOfflineError` for constrained problems: get the worst feasible solution in the population if the
          current best is not feasible.'''
@@ -72,4 +75,4 @@ class ModifiedOfflineErrorContraints(ModifiedOfflineError):
     def on_gen_end(self, best:'Individual', time:int, max_time_reached:bool, **kwargs:Any)->None:
         if not max_time_reached:
             if best.is_feasible: self.metrics += np.abs(self.optimal_fitness(time) - best.fitness_value)
-            else               : self.metrics += np.abs(self.optimal_fitness(time) - self.optim.population.get_worse().fitness_value)
+            else               : self.metrics += np.abs(self.optimal_fitness(time) - self.get_worse().fitness_value)
