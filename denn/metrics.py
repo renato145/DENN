@@ -74,7 +74,7 @@ class OfflineError(Metric):
     def on_run_end(self, evals:int, **kwargs:Any)->None:
         self.metrics /= evals
 
-class ModifiedOfflineError(ModifiedOfflineError):
+class ModifiedOfflineError(OfflineError):
     def __init__(self, optim:'Optimization'):
         '''Modification of `ModifiedOfflineError` for constrained problems: get the worst feasible solution in the population if the
          current best is not feasible.'''
