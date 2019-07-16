@@ -87,6 +87,16 @@ class Population:
     def refresh(self)->None:
         for indiv in self.individuals: indiv.refresh()
 
+    def get_worse(self)->Individual:
+        not_feasible = [(i,e) for i,e in enumerate(self) if not e.is_feasible]
+        if len(not_feasible) > 0:
+            idxs,not_feasible = zip(*not_feasible)
+            idx = idxs[np.argmax([e.fitness_value for e in not_feasible])]
+        else:
+            idx =      np.argmax([e.fitness_value for e in self])
+
+        return self[idx]
+
     def __call__(self, func:Callable, pbar:Optional[PBar]=None)->Collection[Any]:
         return [func(individual) for individual in progress_bar(self.individuals, parent=pbar)]
 

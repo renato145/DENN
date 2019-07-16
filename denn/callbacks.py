@@ -67,7 +67,7 @@ class CallbackHandler():
         gen_end = generations + self.state_dict['gen'] - 1
         update_each = min(update_each, generations)
         if silent: show_graph = show_report = False
-        self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, max_evals=max_evals, max_times=max_times,
+        self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, max_evals=max_evals, max_times=max_times, max_time_reached=False,
                                     frequency=frequency, show_graph=show_graph, update_each=update_each, show_report=show_report, silent=silent))
         self('run_begin')
 
@@ -141,13 +141,11 @@ class CallbackHandler():
         return self.state_dict['evals']
 
     def on_time_change(self, **kwargs:Any)->None:
-        self.state_dict['time'] += 1
-        max_time_reached = False
-        if self.state_dict['max_times'] is not None:
-            if self.state_dict['max_times'] <= self.state_dict['time']: max_time_reached = True
-
-        self.state_dict['max_time_reached'] = max_time_reached
         self('time_change')
+        self.state_dict['time'] += 1
+        if self.state_dict['max_times'] is not None:
+            if self.state_dict['max_times'] <= self.state_dict['time']: self.state_dict['max_time_reached'] = True
+
         self.state_dict['time_evals'] = 0
         if self.state_dict['max_time_reached']: raise CancelRunException('`max_time` reached.')
 
