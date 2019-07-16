@@ -2,7 +2,7 @@ from .imports import *
 from .callbacks import *
 from .utils import *
 
-__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'ModifiedOfflineError', 'ModifiedOfflineErrorConstraints']
+__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'OfflineError', 'ModifiedOfflineError']
 
 def get_metrics(metrics:Optional[Collection['Metric']])->Collection[Optional['Metric']]:
     metrics = listify(metrics)
@@ -61,7 +61,7 @@ class SpeedMetric(ThreadholdMetric):
         ax.legend()
         return ax
 
-class ModifiedOfflineError(Metric):
+class OfflineError(Metric):
     def __init__(self, optim:'Optimization'):
         '''Get the absolute value of the deviation of the best solution found and optimal value of this time at each generation,
            and at the end of the run devides by the maximum number of generations.'''
@@ -74,7 +74,7 @@ class ModifiedOfflineError(Metric):
     def on_run_end(self, evals:int, **kwargs:Any)->None:
         self.metrics /= evals
 
-class ModifiedOfflineErrorConstraints(ModifiedOfflineError):
+class ModifiedOfflineError(ModifiedOfflineError):
     def __init__(self, optim:'Optimization'):
         '''Modification of `ModifiedOfflineError` for constrained problems: get the worst feasible solution in the population if the
          current best is not feasible.'''
