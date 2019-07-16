@@ -38,7 +38,7 @@ class SpeedMetric(ThreadholdMetric):
         assert optim.optimal_fitness_values is not None, 'No optimal fitness values were given.'
         super().__init__(optim)
         self.threadhold = threadhold
-        self.speeds = -np.ones(self.optim.max_times)
+        self.speeds = np.asarray([np.nan]*self.optim.max_times)
         self.metrics = 0.0
 
     def __repr__(self)->str: return f'{self.__class__.__name__}(success rate): {self.metrics:.4f}'
