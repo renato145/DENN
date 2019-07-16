@@ -234,6 +234,9 @@ class Recorder(Callback):
         super().__init__(optim)
         self.best_times = []
 
+    @property
+    def metrics(self)->Collection['Metrics']: return self.optim.metrics
+
     def on_run_begin(self, pbar:PBar, **kwargs:Any)->None:
         self.pbar = pbar
         self.pbar.names = ['fitness']
@@ -260,8 +263,8 @@ class Recorder(Callback):
     def optimal_times_constraints(self)->np.ndarray: return self.optim.optimal_sum_constraints
 
     def show_report(self)->None:
-        # print('A proper report should be shown here :)')
         print(f'Total time: {self.elapsed}')
+        for metric in self.metrics: print(metric)
 
     def _pbar_plot(self)->None:
         self.pbar.update_graph(self.get_plot_data(), x_bounds=(0,self.optim.max_times))
@@ -274,6 +277,17 @@ class Recorder(Callback):
         fig,axs = plt.subplots(2, 1, figsize=figsize)
         self.plot_fitness(axs[0])
         self.plot_constraints(axs[1])
+        plt.tight_layout()
+        return axs
+
+    def plot_metrics(self, figsize:Tuple[int,int]=(6,3), **kwargs:Any)->Collection[plt.Axes]:
+        metrics = [e for e in self.optim.metrics if hasattr(e, 'plot')]
+        n = len(metrics)
+        w,h = figsize
+        h *= n
+        fig,axs = plt.subplots(n, 1, figsize=(w,h))
+        axs = listify(axs)
+        for metric,ax in zip(metrics,axs): metric.plot(ax)
         plt.tight_layout()
         return axs
 

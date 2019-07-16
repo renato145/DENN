@@ -275,6 +275,11 @@ class Optimization:
         runs.reset_population()
         return runs
 
+    def save(self, path:Union[str,Path])->None:
+        path = Path(path)
+        # save things
+        raise NotImplementedError
+
 def _optimization_run(opt:Optimization, i:int, generations:int)->Optimization:
     opt.run(generations, silent=True)
     return opt

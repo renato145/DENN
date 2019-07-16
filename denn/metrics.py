@@ -41,6 +41,8 @@ class SpeedMetric(ThreadholdMetric):
         self.speeds = -np.ones(self.optim.max_times)
         self.metrics = 0.0
 
+    def __repr__(self)->str: return f'{self.__class__.__name__}(success rate): {self.metrics:.4f}'
+
     def on_gen_end(self, threadhold_reached:bool, threadhold_value:float, time:int, time_evals:int, max_time_reached:bool, **kwargs:Any)->Optional[dict]:
         if not threadhold_reached and not max_time_reached:
             if threadhold_value >= self.threadhold:
@@ -50,8 +52,14 @@ class SpeedMetric(ThreadholdMetric):
     def on_run_end(self, **kwargs:Any)->None:
         self.metrics = sum(self.speeds > -1) / len(self.speeds)
 
-    def plot(self)->None:
-        pass
+    def plot(self, ax:Optional[plt.Axes]=None, figsize:Tuple[int,int]=(8,5), title:str='Speed metric', **kwargs:Any)->plt.Axes:
+        if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
+        ax.set_xlabel('times')
+        ax.set_ylabel('speed metric')
+        ax.plot(self.speeds, label='speed_metric', **kwargs)
+        ax.set_title(title)
+        ax.legend()
+        return ax
 
 class ModifiedOfflineError(Metric):
     def __init__(self, optim:'Optimization'):
