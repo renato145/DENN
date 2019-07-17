@@ -2,7 +2,7 @@ from .imports import *
 from .callbacks import *
 from .utils import *
 
-__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'OfflineError', 'ModifiedOfflineError']
+__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'OfflineError', 'ModifiedOfflineError', 'AbsoluteRecoverRate']
 
 def get_metrics(metrics:Optional[Collection['Metric']])->Collection[Optional['Metric']]:
     metrics = listify(metrics)
