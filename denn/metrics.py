@@ -34,8 +34,8 @@ class ThreadholdStarter(Callback):
         return {'threadhold_reached':False, 'threadhold_value':0.0}
 
 class SpeedMetric(ThreadholdMetric):
-    def __init__(self, optim:'Optimization', threadhold:float=0.1):
-        assert optim.optimal_fitness_values is not None, 'No optimal fitness values were given.'
+    def __init__(self, optim:'optimization', threadhold:float=0.1):
+        assert optim.optimal_fitness_values is not None, 'no optimal fitness values were given.'
         super().__init__(optim)
         self.threadhold = threadhold
         self.speeds = np.asarray([np.nan]*self.optim.max_times)
@@ -84,3 +84,31 @@ class ModifiedOfflineError(OfflineError):
         if not max_time_reached:
             if best.is_feasible: self.metrics += np.abs(self.optimal_fitness(time) - best.fitness_value)
             else               : self.metrics += np.abs(self.optimal_fitness(time) - self.get_worse().fitness_value)
+
+class AbsoluteRecoverRate(Metric):
+    def __init__(self, optim:'optimization'):
+        '''From: https://link.springer.com/content/pdf/10.1007%2F978-3-319-77538-8_56.pdf
+        '''
+        super().__init__(optim)
+        assert optim.optimal_fitness_values is not None, 'no optimal fitness values were given.'
+        self.time_values = []
+        self.metrics = 0.0
+        self.this_time_first_best = None
+        self.acummulated_sum = 0.0
+        self.n_time_gen = 0.0
+
+    def on_gen_end(self, best:'Individual', **kwargs:Any)->None:
+        self.n_time_gen += 1
+        if self.this_time_first_best is None:
+            if best.is_feasible: self.this_time_first_best = best.fitness_value
+        else:
+            self.acummulated_sum += abs(best.fitness_value - self.this_time_first_best)
+
+    def on_time_change(self, time:int, **kwargs:Any)->None:
+        self.time_values.append(self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best)))
+        self.this_time_first_best = None
+        self.acummulated_sum = 0.0
+        self.n_time_gen = 0.0
+
+    def on_run_end(self, **kwargs:Any)->None:
+        self.metrics = np.mean(self.time_values)
