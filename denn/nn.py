@@ -4,7 +4,7 @@ from .imports import *
 from .callbacks import *
 from .optimization import *
 
-__all__ = ['NNTrainer']
+__all__ = ['NNTrainer', 'NNTrainerNoNoise']
 
 class NNTrainer(Callback):
     _order = 10 # Needs to run after restarting the population 
@@ -77,3 +77,13 @@ class NNTrainer(Callback):
         # Modify population
         idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
         for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
+
+class NNTrainerNoNoise(NNTrainer):
+    def apply_predictions(self)->None:
+        # Get predictions
+        preds = [self.get_next_best() for _ in range(self.n)]
+        preds = torch.stack(preds, dim=0).numpy()
+        # Modify population
+        idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
+        for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
+
