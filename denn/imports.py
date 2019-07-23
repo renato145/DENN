@@ -6,6 +6,7 @@ from typing import Any, Callable, Collection, Optional, Union, Dict, Tuple
 from fastprogress import progress_bar, master_bar
 from fastprogress.fastprogress import MasterBar, ProgressBar, format_time
 from collections import Counter, defaultdict, Iterable
+from enum import Enum, IntEnum
 from numba import jit
 from time import time as get_time
 from multiprocessing import cpu_count
