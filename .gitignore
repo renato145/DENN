@@ -3,6 +3,7 @@ tags
 .DS_Store
 */.DS_Store
 Icon?
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
