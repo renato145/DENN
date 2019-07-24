@@ -26,7 +26,7 @@ def _replace_closest(self, preds:np.ndarray)->None:
 def _replace_worst(self, preds:np.ndarray)->None:
     pass
 
-replace_mech_dict = dict(ReplaceMechanism.Random:_replace_random, ReplaceMechanism.Closest:_replace_closest, ReplaceMechanism.Worst:_replace_worst)
+replace_mech_dict = dict(ReplaceMechanism.Random=_replace_random, ReplaceMechanism.Closest=_replace_closest, ReplaceMechanism.Worst=_replace_worst)
 
 class NNTrainer(Callback):
     _order = 10 # Needs to run after restarting the population 
