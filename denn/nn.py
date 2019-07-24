@@ -16,18 +16,6 @@ class ReplaceMechanism(IntEnum):
     Closest=2
     Worst=3
 
-def _replace_random(self, preds:np.ndarray)->None:
-    idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
-    for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
-
-def _replace_closest(self, preds:np.ndarray)->None:
-    pass
-
-def _replace_worst(self, preds:np.ndarray)->None:
-    pass
-
-replace_mech_dict = {ReplaceMechanism.Random:_replace_random, ReplaceMechanism.Closest:_replace_closest, ReplaceMechanism.Worst:_replace_worst}
-
 class NNTrainer(Callback):
     _order = 10 # Needs to run after restarting the population 
 
@@ -35,15 +23,29 @@ class NNTrainer(Callback):
                  window:int=5, min_batches:int=20, bs:int=4, epochs:int=10, loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam):
         'TODO: add documentation'
         super().__init__(optim)
-        self.model,self.n,self.noise_range,self.window,self.min_batches,self.bs,self.epochs,self.loss_func =\
-             model,     n,     noise_range,     window,     min_batches,     bs,     epochs,     loss_func
+        self.model,self.replace_mechanism,self.n,self.noise_range,self.window,self.min_batches,self.bs,self.epochs,self.loss_func =\
+             model,     replace_mechanism,     n,     noise_range,     window,     min_batches,     bs,     epochs,     loss_func
         self.data,self.train_losses = [],[]
         self.nn_optim = nn_optim(model.parameters())
         self.d = optim.population.dimension
         self.n_individuals = optim.population.n
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.model.to(self.device)
-        self.modify_population = replace_mech_dict[replace_mechanism]
+
+    def _replace_random(self, preds:np.ndarray=1)->None:
+        idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
+        for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
+
+    def _replace_closest(self, preds:np.ndarray)->None:
+        pass
+
+    def _replace_worst(self, preds:np.ndarray)->None:
+        pass
+
+    def modify_population(self, preds:np.ndarray)->None:
+        if   self.replace_mechanism==ReplaceMechanism.Random : self._replace_random (preds)
+        elif self.replace_mechanism==ReplaceMechanism.Closest: self._replace_closest(preds)
+        elif self.replace_mechanism==ReplaceMechanism.Worst  : self._replace_worst  (preds)
 
     def on_detect_change_end(self, change_detected:bool, best:Individual, **kwargs:Any)->None:
         if change_detected:
