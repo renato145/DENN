@@ -4,13 +4,35 @@ from .imports import *
 from .callbacks import *
 from .optimization import *
 
-__all__ = ['NNTrainer', 'NNTrainerNoNoise']
+__all__ = ['ReplaceMechanism', 'NNTrainer', 'NNTrainerNoNoise']
+
+class ReplaceMechanism(IntEnum):
+    '''Mechanism to replace individuals after a time change has been detected.
+    - Random : Choose `n` random individuals to replace.
+    - Closest: Choose the `n` closest individuals to replace.
+    - Worst  : Choose the `n` worst individuals to replace.
+    '''
+    Random=1
+    Closest=2
+    Worst=3
+
+def _replace_random(self, preds:np.ndarray)->None:
+    idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
+    for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
+
+def _replace_closest(self, preds:np.ndarray)->None:
+    pass
+
+def _replace_worst(self, preds:np.ndarray)->None:
+    pass
+
+replace_mech_dict = dict(ReplaceMechanism.Random:_replace_random, ReplaceMechanism.Closest:_replace_closest, ReplaceMechanism.Worst:_replace_worst)
 
 class NNTrainer(Callback):
     _order = 10 # Needs to run after restarting the population 
 
-    def __init__(self, optim:'Optimization', model:nn.Module, n:int=3, noise_range:float=0.5, window:int=5, min_batches:int=20,
-                 bs:int=4, epochs:int=10, loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam):
+    def __init__(self, optim:'Optimization', model:nn.Module, replace_mechanism:ReplaceMechanism=ReplaceMechanism.Random, n:int=3, noise_range:float=0.5,
+                 window:int=5, min_batches:int=20, bs:int=4, epochs:int=10, loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam):
         'TODO: add documentation'
         super().__init__(optim)
         self.model,self.n,self.noise_range,self.window,self.min_batches,self.bs,self.epochs,self.loss_func =\
@@ -21,15 +43,16 @@ class NNTrainer(Callback):
         self.n_individuals = optim.population.n
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.model.to(self.device)
+        self.modify_population = replace_mech_dict[replace_mechanism]
 
-    def on_detect_change_end(self, change_detected:bool, best:Individual, **kwargs:Any):
+    def on_detect_change_end(self, change_detected:bool, best:Individual, **kwargs:Any)->None:
         if change_detected:
             self.data.append(best.clone())
             if len(self.data)-self.window >= self.min_batches:
                 self.do_train()
                 self.apply_predictions()
 
-    def on_run_end(self, **kwargs):
+    def on_run_end(self, **kwargs:Any)->None:
         self.model.eval()
 
     def get_train_data(self)->Tuple[Tensor,Tensor]:
@@ -75,8 +98,7 @@ class NNTrainer(Callback):
         preds.add_(noise)
         preds = preds.numpy()
         # Modify population
-        idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
-        for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
+        self.modify_population(preds)
 
 class NNTrainerNoNoise(NNTrainer):
     def apply_predictions(self)->None:
@@ -84,6 +106,5 @@ class NNTrainerNoNoise(NNTrainer):
         preds = [self.get_next_best() for _ in range(self.n)]
         preds = torch.stack(preds, dim=0).numpy()
         # Modify population
-        idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
-        for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
+        self.modify_population(preds)
 
