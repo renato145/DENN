@@ -99,7 +99,13 @@ class Population:
 
     def get_n_worse(self, n:int)->Collection[Individual]:
         if n==1: return [self.get_worse()]
-        pass
+        raise NotImplementedError
+
+    def get_closest(self, position:np.ndarray)->Tuple[np.ndarray,np.ndarray]:
+        'Returns the population idxs sorted by euclidean distance and the distances'
+        distances = np.asarray([np.linalg.norm(indiv.data-position) for indiv in self])
+        idxs = np.argsort(distances)
+        return idxs,distances
 
     def __call__(self, func:Callable, pbar:Optional[PBar]=None)->Collection[Any]:
         return [func(individual) for individual in progress_bar(self.individuals, parent=pbar)]
