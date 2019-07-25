@@ -37,8 +37,12 @@ class NNTrainer(Callback):
         for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
 
     def _replace_closest(self, preds:np.ndarray)->None:
-        # idxs = 
-        raise NotImplementedError
+        idxs = []
+        for pred in preds:
+            this_idxs,_ = self.optim.population.get_closest(pred)
+            this_idx = [idx for idx in this_idxs if idx not in idxs][0]
+            idxs.append(this_idx)
+        
         for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
 
     def _replace_worst(self, preds:np.ndarray)->None:
