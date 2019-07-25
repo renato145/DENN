@@ -97,6 +97,10 @@ class Population:
 
         return self[idx]
 
+    def get_n_worse(self, n:int)->Collection[Individual]:
+        if n==1: return [self.get_worse()]
+        pass
+
     def __call__(self, func:Callable, pbar:Optional[PBar]=None)->Collection[Any]:
         return [func(individual) for individual in progress_bar(self.individuals, parent=pbar)]
 
