@@ -105,7 +105,8 @@ class AbsoluteRecoverRate(Metric):
             self.acummulated_sum += abs(best.fitness_value - self.this_time_first_best)
 
     def on_time_change(self, time:int, **kwargs:Any)->None:
-        self.time_values.append(self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best)))
+        if self.this_time_first_best is None: self.time_values.append(0.0)
+        else: self.time_values.append(self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best)))
         self.this_time_first_best = None
         self.acummulated_sum = 0.0
         self.n_time_gen = 0.0
