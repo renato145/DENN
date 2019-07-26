@@ -2,15 +2,12 @@ from denn import *
 import torch
 from torch import nn, functional as F
 
-path = Path('/home/renato/github/DENN/data/large')
+path = Path('data/results/experiment1')
 
-ab = pd.read_csv(path/'dC_01.csv', header=None).values[0]
-bestKnow = pd.read_csv(path/'Best_Know1Fxs.csv', header=None).values[0]
-bestKnow = bestKnow[:100].astype(float)
-bestKnow_sum_constraints = pd.read_csv(path/'Best_Know1SumCV.csv', header=None).values[0][:100].astype(float)
-java_results = pd.read_csv(path/'Feasibility1Fs.csv', header=None).values[0]
-java_results = java_results[:-1].astype(float)
-java_results_all = pd.read_csv(path/'Feasibility1Fs.csv', header=None).iloc[:,:-1]
+df = pd.read_csv(path/'best_known.csv')
+best_known_fitness = df['fitness'].values
+best_known_sumcv = df['sum_constraints'].values
+ab = pd.read_csv(path/'dC_01.csv')['b'].values
 
 D = 30
 nn_window = 5
@@ -42,6 +39,6 @@ speed_metric = partial(SpeedMetric, threadhold=0.1)
 opt = Optimization(population, fitness_func, constraint_func, constraint_params=[ab],
                    max_times=max_times, frequency=frequency, callbacks=[nn_trainer],
                    metrics=[],
-                   optimal_fitness_values=bestKnow, optimal_sum_constraints=bestKnow_sum_constraints)
+                   optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv)
 
 opt.run(total_generations, silent=True)
