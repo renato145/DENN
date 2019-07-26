@@ -33,7 +33,7 @@ def fitness_func(indiv, b, t): return (indiv.data**2).sum()
 def constraint_func(indiv, b, t): return -b[t] + sum((1/np.sqrt(D))*indiv.data)
 
 population = Population.new_random(dimension=D)
-nn_trainer = partial(NNTrainer, model=model, window=nn_window)
+nn_trainer = partial(NNTrainer, model=model, window=nn_window, replace_mechanism=ReplaceMechanism.Worst, n=3)
 speed_metric = partial(SpeedMetric, threadhold=0.1)
 
 opt = Optimization(population, fitness_func, constraint_func, constraint_params=[ab],
