@@ -97,9 +97,21 @@ class Population:
 
         return self[idx]
 
-    def get_n_worse(self, n:int)->Collection[Individual]:
+    def get_n_worse(self, n:Optional[int]=None)->Collection[Individual]:
+        idxs = []
+        n = ifnone(n, self.n)
         if n==1: return [self.get_worse()]
-        raise NotImplementedError
+        feasible_idxs     = {indiv.idx for indiv in self if indiv.is_feasible}
+        not_feasible_idxs = set(range(self.n)) - feasible_idxs
+        feasible_idxs,not_feasible_idxs = [np.asarray(list(e)) for e in [feasible_idxs,not_feasible_idxs]]
+
+        if len(not_feasible_idxs) > 0:
+            idxs += not_feasible_idxs[np.argsort([self[i].fitness_value for i in not_feasible_idxs])[::-1]].tolist()
+
+        if len(feasible_idxs) > 0:
+            idxs += feasible_idxs    [np.argsort([self[i].fitness_value for i in     feasible_idxs])[::-1]].tolist()
+
+        return [self[idx] for idx in idxs[:n]]
 
     def get_closest(self, position:np.ndarray)->Tuple[np.ndarray,np.ndarray]:
         'Returns the population idxs sorted by euclidean distance and the distances'
