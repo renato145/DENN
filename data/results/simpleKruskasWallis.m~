@@ -1,0 +1,9 @@
+clc;
+clear;
+close all;
+aname={'no_nn','nn-mostclose','nn-worst',};
+x(:,1)=csvread('experiment1/nn-mostclose_mof.csv',1,0);
+x(:,2)=csvread('experiment1/nn-worst_mof.csv',1,0);
+x(:,3)=csvread('experiment1/nn-random_mof.csv',1,0);
+[p,tbl,stats] = kruskalwallis(x,aname,'off');
+c=multcompare(stats,'ctype','bonferroni');%,'display','off'
