@@ -12,7 +12,7 @@ ab = pd.read_csv(path/'dC_01.csv')['b'].values
 D = 30
 nn_window = 5
 nn_nf = 4
-frequency = 1_000
+frequency = 1000
 max_times = 100
 total_generations = max_times * frequency + 1000
 
@@ -38,7 +38,9 @@ speed_metric = partial(SpeedMetric, threadhold=0.1)
 
 opt = Optimization(population, fitness_func, constraint_func, constraint_params=[ab],
                    max_times=max_times, frequency=frequency, callbacks=[nn_trainer],
-                   metrics=[],
+                   metrics=[speed_metric],
                    optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv)
 
 opt.run(total_generations, silent=True)
+
+print(opt.metrics)

@@ -3,6 +3,7 @@ from torch import nn, functional as F, Tensor
 from .imports import *
 from .callbacks import *
 from .optimization import *
+from .metrics import NNTimer
 
 __all__ = ['ReplaceMechanism', 'NNTrainer', 'NNTrainerNoNoise']
 
@@ -31,6 +32,8 @@ class NNTrainer(Callback):
         self.n_individuals = optim.population.n
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.model.to(self.device)
+        optim.callbacks.append(NNTimer)
+        optim.metrics.append(NNTimer)
 
     def _replace_random(self, preds:np.ndarray=1)->None:
         idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
@@ -55,11 +58,14 @@ class NNTrainer(Callback):
         elif self.replace_mechanism==ReplaceMechanism.Worst  : self._replace_worst  (preds)
 
     def on_detect_change_end(self, change_detected:bool, best:Individual, **kwargs:Any)->None:
+        start_time = get_time()
         if change_detected:
             self.data.append(best.clone())
             if len(self.data)-self.window >= self.min_batches:
                 self.do_train()
                 self.apply_predictions()
+
+        self.optim.nn_timer.times.append(get_time() - start_time)
 
     def on_run_end(self, **kwargs:Any)->None:
         self.model.eval()

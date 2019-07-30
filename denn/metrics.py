@@ -2,7 +2,7 @@ from .imports import *
 from .callbacks import *
 from .utils import *
 
-__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'OfflineError', 'ModifiedOfflineError', 'AbsoluteRecoverRate']
+__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'OfflineError', 'ModifiedOfflineError', 'AbsoluteRecoverRate', 'NNTimer']
 
 def get_metrics(metrics:Optional[Collection['Metric']])->Collection[Optional['Metric']]:
     metrics = listify(metrics)
@@ -34,7 +34,7 @@ class ThreadholdStarter(Callback):
         return {'threadhold_reached':False, 'threadhold_value':0.0}
 
 class SpeedMetric(ThreadholdMetric):
-    def __init__(self, optim:'optimization', threadhold:float=0.1):
+    def __init__(self, optim:'Optimization', threadhold:float=0.1):
         assert optim.optimal_fitness_values is not None, 'no optimal fitness values were given.'
         super().__init__(optim)
         self.threadhold = threadhold
@@ -66,7 +66,7 @@ class OfflineError(Metric):
         '''Get the absolute value of the deviation of the best solution found and optimal value of this time at each generation,
            and at the end of the run devides by the maximum number of generations.'''
         super().__init__(optim)
-        self.metrics = 0
+        self.metrics = 0.0
 
     def on_gen_end(self, best:'Individual', time:int, max_time_reached:bool, **kwargs:Any)->None:
         if not max_time_reached: self.metrics += np.abs(self.optimal_fitness(time) - best.fitness_value)
@@ -113,3 +113,16 @@ class AbsoluteRecoverRate(Metric):
 
     def on_run_end(self, **kwargs:Any)->None:
         self.metrics = np.mean(self.time_values)
+
+class NNTimer(Metric):
+    def __init__(self, optim:'Optimization'):
+        'Records the amount of time the optimization expends on the neural network.'
+        super().__init__(optim)
+        self.times = []
+        self.total_time = 0.0
+        self.metrics = 0.0
+
+    def on_run_end(self, **kwargs:Any)->None:
+        self.total_time = sum(self.times)
+        elapsed = get_time() - self.optim.recorder.start_time
+        self.metrics = self.total_time / elapsed
