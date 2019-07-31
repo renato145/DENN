@@ -118,7 +118,7 @@ class NNTrainer(Callback):
 class NNTrainerNoNoise(NNTrainer):
     def apply_predictions(self)->None:
         # Get predictions
-        preds = [self.get_next_best() for _ in range(self.n)]
+        preds = [self.get_next_best() for _ in repeat(None, self.n)]
         preds = torch.stack(preds, dim=0).numpy()
         # Modify population
         self.modify_population(preds)
