@@ -1,24 +1,16 @@
 clc;
 clear;
 close all;
-aname={'no_nn','nn-random','nn-mostclose','nn-worst', 'nn-distribution'};
-
+MechName={'random'};%,'worst','mostclose'
+aname={'no_nn',['nn-normal',MechName{1}],['nn-dropout', MechName{1}],['nn-distibution', MechName{1}]};
+nnName={'normal','dropout','distribution'};
 
 %mof
 
-x(:,1)=csvread('experiment1/no_nn_mof.csv',1,0);
-x(:,2)=csvread('experiment1/nn-random_mof.csv',1,0);
-x(:,3)=csvread('experiment1/nn-mostclose_mof.csv',1,0);
-x(:,4)=csvread('experiment1/nn-worst_mof.csv',1,0);
-x(:,5)=csvread('experiment1/nn-distribution_mof.csv',1,0);
+x(:,1)=csvread(['experiment4/no_nn_mof.csv'],1,0);
+for i=1:length(nnName)
+x(:,i+1)=csvread(['experiment4/nn-',nnName{i},'-',MechName{1},'_mof.csv'],1,0);
+end
 
-%successrate
-%{
-x(:,1)=csvread('experiment1/no_nn_sr.csv',1,0);
-x(:,2)=csvread('experiment1/nn-random_sr.csv',1,0);
-x(:,3)=csvread('experiment1/nn-mostclose_sr.csv',1,0);
-x(:,4)=csvread('experiment1/nn-worst_sr.csv',1,0);
-x(:,5)=csvread('experiment1/nn-distribution_sr.csv',1,0);
-%}
 [p,tbl,stats] = kruskalwallis(x,aname,'off');
 c=multcompare(stats,'ctype','bonferroni');%,'display','off'
