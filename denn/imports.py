@@ -13,5 +13,6 @@ from multiprocessing import cpu_count
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from IPython.display import clear_output, HTML
 from copy import deepcopy
+from itertools import repeat
 Path.ls = lambda x: list(x.iterdir())
 PBar = Union[MasterBar, ProgressBar]
