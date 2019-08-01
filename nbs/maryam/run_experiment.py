@@ -30,7 +30,7 @@ class SimpleModel(nn.Module):
         fts = torch.cat([self.fc1(x[:,i]) for i in range(x.size(1))], dim=1)
         return self.fc2(self.act(fts))
 
-def get_functions(experiment:Experiment)->Collection[Callable]:
+def get_functions(experiment:Experiment, D:int)->Collection[Callable]:
     if experiment in [Experiment.exp1, Experiment.exp2]:
         def fitness_func(indiv, b, t): return (indiv.data**2).sum()
         def constraint_func(indiv, b, t): return -b[t] + sum((1/np.sqrt(D))*indiv.data)
@@ -50,7 +50,7 @@ def main(experiment:str, method:str, replace_mech:Optional[str]=None, D:int=30, 
     method_type = getattr(Method, method)
     replace_type = getattr(ReplaceMechanism, replace_mech)
     path = Path(f'../../data/results/{experiment}')
-    fitness_func,constraint_func = get_functions(experiment_type)
+    fitness_func,constraint_func = get_functions(experiment_type, D)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     experiment_name = f'{method}'
     total_generations = max_times * frequency + 1_000
