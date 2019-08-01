@@ -83,7 +83,6 @@ def main(experiment:str, method:str, replace_mech:Optional[str]=None, D:int=30, 
 
         population = Population.new_random(dimension=D)
         speed_metric = partial(SpeedMetric, threadhold=0.2)
-        print(ab)
         opt = Optimization(population, fitness_func, constraint_func, fitness_params=ab, constraint_params=[ab],
                            max_times=max_times, frequency=frequency, callbacks=callbacks,
                            metrics=[speed_metric, ModifiedOfflineError, OfflineError, AbsoluteRecoverRate],
