@@ -48,13 +48,14 @@ def main(experiment:str, method:str, replace_mech:Optional[str]=None, D:int=30, 
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
-    replace_type = getattr(ReplaceMechanism, replace_mech)
     path = Path(f'../../data/results/{experiment}')
     fitness_func,constraint_func = get_functions(experiment_type, D)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     experiment_name = f'{method}'
     total_generations = max_times * frequency + 1_000
-    if is_nn: experiment_name += f'_{replace_mech}'
+    if is_nn:
+        experiment_name += f'_{replace_mech}'
+        replace_type = getattr(ReplaceMechanism, replace_mech)
 
     # Read files
     ab = pd.read_csv(path/'dC_01.csv')['b'].values
