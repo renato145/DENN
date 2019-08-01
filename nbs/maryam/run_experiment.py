@@ -41,7 +41,7 @@ def get_functions(experiment:Experiment)->Collection[Callable]:
         def fitness_func(indiv, b, t): return ((indiv.data-b[t]*np.sin(np.pi/2*t))**2).sum()
         def constraint_func(indiv, b, t): return 0
 
-    return fitness_func,contraint_func
+    return fitness_func,constraint_func
 
 def main(experiment:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
          max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3):
@@ -50,7 +50,7 @@ def main(experiment:str, method:str, replace_mech:Optional[str]=None, D:int=30, 
     method_type = getattr(Method, method)
     replace_type = getattr(ReplaceMechanism, replace_mech)
     path = Path(f'../../data/results/{experiment}')
-    fitness_func,contraint_func = get_functions(experiment_type)
+    fitness_func,constraint_func = get_functions(experiment_type)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     experiment_name = f'{method}'
     total_generations = max_times * frequency + 1_000
@@ -83,7 +83,7 @@ def main(experiment:str, method:str, replace_mech:Optional[str]=None, D:int=30, 
 
         population = Population.new_random(dimension=D)
         speed_metric = partial(SpeedMetric, threadhold=0.2)
-
+        print(ab)
         opt = Optimization(population, fitness_func, constraint_func, fitness_params=ab, constraint_params=[ab],
                            max_times=max_times, frequency=frequency, callbacks=callbacks,
                            metrics=[speed_metric, ModifiedOfflineError, OfflineError, AbsoluteRecoverRate],

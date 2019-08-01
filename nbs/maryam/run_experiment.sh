@@ -1,0 +1,1 @@
+~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 NNnorm Worst
