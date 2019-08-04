@@ -67,6 +67,7 @@ class CallbackHandler():
         gen_end = generations + self.state_dict['gen'] - 1
         update_each = min(update_each, generations)
         if silent: show_graph = show_report = False
+        self.silent = silent
         self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, max_evals=max_evals, max_times=max_times, max_time_reached=False,
                                     frequency=frequency, show_graph=show_graph, update_each=update_each, show_report=show_report, silent=silent))
         self('run_begin')
@@ -196,31 +197,31 @@ class CallbackHandler():
 
     def on_cancel_detect_change(self, exception:Exception, **kwargs:Any)->None:
         if self.state_dict['skip_detect_change']: return False
-        print(f'Detect change cancelled: {exception}')
+        if not self.silent: print(f'Detect change cancelled: {exception}')
         self('cancel_detect_change')
 
     def on_cancel_evolve(self, exception:Exception, **kwargs:Any)->None:
-        print(f'Evolve cancelled: {exception}')
+        if not self.silent: print(f'Evolve cancelled: {exception}')
         self('cancel_evolve')
 
     def on_cancel_fitness(self, exception:Exception, **kwargs:Any)->None:
-        print(f'Fitness cancelled: {exception}')
+        if not self.silent: print(f'Fitness cancelled: {exception}')
         self('cancel_fitness')
 
     def on_cancel_each_constraint(self, exception:Exception, **kwargs:Any)->None:
-        print(f'Each_constraint cancelled: {exception}')
+        if not self.silent: print(f'Each_constraint cancelled: {exception}')
         self('cancel_each_constraint')
 
     def on_cancel_constraints(self, exception:Exception, **kwargs:Any)->None:
-        print(f'Constraints cancelled: {exception}')
+        if not self.silent: print(f'Constraints cancelled: {exception}')
         self('cancel_constraints')
 
     def on_cancel_gen(self, exception:Exception, **kwargs:Any)->None:
-        print(f'Gen cancelled: {exception}')
+        if not self.silent: print(f'Gen cancelled: {exception}')
         self('cancel_gen')
 
     def on_cancel_run(self, exception:Exception, **kwargs:Any)->None:
-        print(f'Run cancelled: {exception}')
+        if not self.silent: print(f'Run cancelled: {exception}')
         self('cancel_run')
 
 class OnChangeRestartPopulation(Callback):
@@ -237,9 +238,10 @@ class Recorder(Callback):
     @property
     def metrics(self)->Collection['Metrics']: return self.optim.metrics
 
-    def on_run_begin(self, pbar:PBar, **kwargs:Any)->None:
-        self.pbar = pbar
-        self.pbar.names = ['fitness']
+    def on_run_begin(self, pbar:PBar, silent:bool, **kwargs:Any)->None:
+        if not silent:
+            self.pbar = pbar
+            self.pbar.names = ['fitness']
         self.start_time = get_time()
 
     def on_time_change(self, best:'Individual', time:int, show_graph:bool, update_each:int, **kwargs:Any)->None:
