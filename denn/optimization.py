@@ -280,12 +280,14 @@ class Optimization:
         finally: self.cb_handler.on_gen_end()
 
     def run(self, generations:int, show_graph:bool=True, update_each:int=10, show_report:bool=True, silent:bool=False)->None:
-        pbar = master_bar(range(1))
+        pbar = range(1) if silent else master_bar(range(1))
         try:
             self.cb_handler.on_run_begin(generations, pbar, self.max_evals, self.max_times, self.frequency,
-                                         show_graph=show_graph, update_each=update_each, show_report=show_report, silent=silent)
+                                         show_graph=show_graph, update_each=update_each, show_report=show_report,
+                                         silent=silent)
             for _ in pbar:
-                for gen in progress_bar(range(generations), parent=pbar): self.run_one_gen()
+                bar = range(generations) if silent else progress_bar(range(generations), parent=pbar)
+                for gen in bar: self.run_one_gen()
 
         except CancelRunException as exception: self.cb_handler.on_cancel_run(exception)
         finally: self.cb_handler.on_run_end()
