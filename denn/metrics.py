@@ -50,7 +50,7 @@ class SpeedMetric(ThreadholdMetric):
                 return {'threadhold_reached':True}
 
     def on_run_end(self, **kwargs:Any)->None:
-        self.metrics = sum(self.speeds > -1) / len(self.speeds)
+        self.metrics = sum(np.isnan(self.speeds)) / len(self.speeds)
 
     def plot(self, ax:Optional[plt.Axes]=None, figsize:Tuple[int,int]=(8,5), title:str='Speed metric', **kwargs:Any)->plt.Axes:
         if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
@@ -106,7 +106,9 @@ class AbsoluteRecoverRate(Metric):
 
     def on_time_change(self, time:int, **kwargs:Any)->None:
         if self.this_time_first_best is None: self.time_values.append(0.0)
-        else: self.time_values.append(self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best)))
+        else:
+            val = self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best))
+            self.time_values.append(val)
         self.this_time_first_best = None
         self.acummulated_sum = 0.0
         self.n_time_gen = 0.0

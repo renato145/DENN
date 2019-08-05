@@ -55,7 +55,7 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
     return fitness_func,constraint_func
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
-         max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3):
+         max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, pbar:bool=True):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
@@ -80,7 +80,8 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
     if is_nn: results['nn_time'] = []
 
     # Run
-    for run in progress_bar(range(runs)):
+    it = progress_bar(range(runs)) if pbar else range(runs)
+    for run in it:
         callbacks = []
         if is_nn:
             if method_type==Method.NNnorm:
@@ -110,6 +111,7 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
         results['fitness'].append(opt.recorder.best_times_fitness)
         results['sumcv'].append(opt.recorder.best_times_constraints)
         if is_nn: results['nn_time'].append(opt.nn_timer.metrics)
+        yield run
 
     # Get results and save
     pd.DataFrame({'mof':results['mof']}).to_csv(path/f'{experiment_name}_mof.csv', index=False)
