@@ -96,22 +96,30 @@ class AbsoluteRecoverRate(Metric):
         self.this_time_first_best = None
         self.acummulated_sum = 0.0
         self.n_time_gen = 0.0
+        self.best_case = False
 
     def on_gen_end(self, best:'Individual', **kwargs:Any)->None:
         self.n_time_gen += 1
         if self.this_time_first_best is None:
-            if best.is_feasible: self.this_time_first_best = best.fitness_value
+            if best.is_feasible:
+                self.this_time_first_best = best.fitness_value
+                if self.n_time_gen == 1:
+                    self.best_case = True
         else:
             self.acummulated_sum += abs(best.fitness_value - self.this_time_first_best)
 
     def on_time_change(self, time:int, **kwargs:Any)->None:
         if self.this_time_first_best is None: self.time_values.append(0.0)
         else:
-            val = self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best))
-            self.time_values.append(val)
+            if self.best_case:
+                self.time_values.append(1.0)
+            else:
+                val = self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best))
+                self.time_values.append(val)
         self.this_time_first_best = None
         self.acummulated_sum = 0.0
         self.n_time_gen = 0.0
+        self.best_case = False
 
     def on_run_end(self, **kwargs:Any)->None:
         self.metrics = np.mean(self.time_values)
