@@ -98,8 +98,9 @@ class AbsoluteRecoverRate(Metric):
         self.n_time_gen = 0.0
         self.best_case = False
 
-    def on_gen_end(self, best:'Individual', time:int, **kwargs:Any)->None:
+    def on_gen_end(self, best:'Individual', time:int, max_time_reached:bool, **kwargs:Any)->None:
         self.n_time_gen += 1
+        if max_time_reached: return
         if self.this_time_first_best is None:
             if best.is_feasible:
                 self.this_time_first_best = best.fitness_value
