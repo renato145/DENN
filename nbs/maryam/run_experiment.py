@@ -50,8 +50,17 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
             def constraint_func(indiv, b, t): return 0
         elif experiment == Experiment.exp4:
             def fitness_func(indiv, b, t): return 10*D+(((indiv.data-b[t]*np.sin(np.pi/2*t))**2)-10*np.cos(2*np.pi*indiv.data)).sum()
-            def constraint_func(indiv, b, t): return 0    
-
+            def constraint_func(indiv, b, t): return 0                
+    elif func_name==FuncName.rosenbrock:
+        if experiment in [Experiment.exp1, Experiment.exp2]:
+            def fitness_func(indiv, b, t): return (indiv.data**2)-10*np.cos(2*np.pi*indiv.data).sum()
+            def constraint_func(indiv, b, t): return -b[t] + sum((1/np.sqrt(D))*indiv.data)
+        elif experiment == Experiment.exp3:
+            def fitness_func(indiv, b, t): return 10*D+(((indiv.data+0.1*t)**2)-10*np.cos(2*np.pi*indiv.data)).sum()
+            def constraint_func(indiv, b, t): return 0
+        elif experiment == Experiment.exp4:
+            def fitness_func(indiv, b, t): return 10*D+(((indiv.data-b[t]*np.sin(np.pi/2*t))**2)-10*np.cos(2*np.pi*indiv.data)).sum()
+            def constraint_func(indiv, b, t): return 0 
     return fitness_func,constraint_func
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
@@ -96,7 +105,7 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
             callbacks.append(OnChangeRestartPopulation)
 
         population = Population.new_random(dimension=D)
-        speed_metric = partial(SpeedMetric, threadhold=0.2)
+        speed_metric = partial(SpeedMetric, threadhold=0.1)
         opt = Optimization(population, fitness_func, constraint_func, fitness_params=ab, constraint_params=[ab],
                            max_times=max_times, frequency=frequency, callbacks=callbacks,
                            metrics=[speed_metric, ModifiedOfflineError, OfflineError, AbsoluteRecoverRate],
