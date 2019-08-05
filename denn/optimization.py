@@ -201,7 +201,7 @@ class Optimization:
         if len(picked_dims) > 0:
             picked = [self.population[i].data[picked_dims] for i in pick_n_but(3, indiv.idx, len(self.population))]
             F = np.random.uniform(self.beta_min, self.beta_max, size=len(picked_dims))
-            new_data = picked[0] + F*picked[1] - picked[2]
+            new_data = picked[0] + F*(picked[1] - picked[2])
             indiv.data[picked_dims] = new_data
             indiv.clip_limits()
 

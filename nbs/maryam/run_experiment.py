@@ -64,7 +64,7 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
     return fitness_func,constraint_func
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
-         max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, pbar:bool=True):
+         max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, save:bool=True, pbar:bool=True):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
@@ -123,13 +123,14 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
         yield run
 
     # Get results and save
-    pd.DataFrame({'mof':results['mof']}).to_csv(path/f'{experiment_name}_mof.csv', index=False)
-    pd.DataFrame({'sr':results['sr']}).to_csv(path/f'{experiment_name}_sr.csv', index=False)
-    pd.DataFrame(results['nfe']).to_csv(path/f'{experiment_name}_nfe.csv', index=False)
-    pd.DataFrame(results['fitness']).to_csv(path/f'{experiment_name}_fitness.csv', index=False)
-    pd.DataFrame(results['sumcv']).to_csv(path/f'{experiment_name}_sumcv.csv', index=False)
-    pd.DataFrame(results['arr']).to_csv(path/f'{experiment_name}_arr.csv', index=False)
-    if is_nn: pd.DataFrame(results['nn_time']).to_csv(path/f'{experiment_name}_nn_time.csv', index=False)
+    if save:
+        pd.DataFrame({'mof':results['mof']}).to_csv(path/f'{experiment_name}_mof.csv', index=False)
+        pd.DataFrame({'sr':results['sr']}).to_csv(path/f'{experiment_name}_sr.csv', index=False)
+        pd.DataFrame(results['nfe']).to_csv(path/f'{experiment_name}_nfe.csv', index=False)
+        pd.DataFrame(results['fitness']).to_csv(path/f'{experiment_name}_fitness.csv', index=False)
+        pd.DataFrame(results['sumcv']).to_csv(path/f'{experiment_name}_sumcv.csv', index=False)
+        pd.DataFrame(results['arr']).to_csv(path/f'{experiment_name}_arr.csv', index=False)
+        if is_nn: pd.DataFrame(results['nn_time']).to_csv(path/f'{experiment_name}_nn_time.csv', index=False)
 
 if __name__ == '__main__':
     fire.Fire(main)
