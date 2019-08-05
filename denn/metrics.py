@@ -27,7 +27,7 @@ class ThreadholdStarter(Callback):
     def on_gen_end(self, max_time_reached:bool, threadhold_reached:bool, time_evals:int, time:int, best:'Individual', **kwargs:Any)->Optional[dict]:
         if not threadhold_reached and best.is_feasible and not max_time_reached:
             this_best,optimal_best = best.fitness_value,self.optimal_fitness(time)
-            threadhold_value = 1-min(this_best,1) if np.isclose(optimal_best, 0) else min((this_best/optimal_best)-1,0)
+            threadhold_value = this_best if np.isclose(optimal_best, 0) else abs(this_best - optimal_best)/abs(optimal_best)
             return {'threadhold_value':threadhold_value}
 
     def on_time_change(self, **kwargs:Any)->dict:
@@ -45,12 +45,12 @@ class SpeedMetric(ThreadholdMetric):
 
     def on_gen_end(self, threadhold_reached:bool, threadhold_value:float, time:int, time_evals:int, max_time_reached:bool, **kwargs:Any)->Optional[dict]:
         if not threadhold_reached and not max_time_reached:
-            if threadhold_value >= self.threadhold:
+            if threadhold_value <= self.threadhold:
                 self.speeds[time] = time_evals
                 return {'threadhold_reached':True}
 
     def on_run_end(self, **kwargs:Any)->None:
-        self.metrics = sum(np.isnan(self.speeds)) / len(self.speeds)
+        self.metrics = 1 - (sum(np.isnan(self.speeds)) / len(self.speeds))
 
     def plot(self, ax:Optional[plt.Axes]=None, figsize:Tuple[int,int]=(8,5), title:str='Speed metric', **kwargs:Any)->plt.Axes:
         if ax is None: fig,ax = plt.subplots(1, 1, figsize=figsize)
