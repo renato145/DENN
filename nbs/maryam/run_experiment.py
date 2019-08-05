@@ -7,7 +7,7 @@ from torch import nn
 
 Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
 Method = Enum('Methods', 'noNNRestart noNNReval NNnorm NNdrop')
-
+FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
 class DropoutModel(nn.Module):
     def __init__(self, d, w, nf):
         super().__init__()
@@ -30,26 +30,38 @@ class SimpleModel(nn.Module):
         fts = torch.cat([self.fc1(x[:,i]) for i in range(x.size(1))], dim=1)
         return self.fc2(self.act(fts))
 
-def get_functions(experiment:Experiment, D:int)->Collection[Callable]:
-    if experiment in [Experiment.exp1, Experiment.exp2]:
-        def fitness_func(indiv, b, t): return (indiv.data**2).sum()
-        def constraint_func(indiv, b, t): return -b[t] + sum((1/np.sqrt(D))*indiv.data)
-    elif experiment == Experiment.exp3:
-        def fitness_func(indiv, b, t): return ((indiv.data + 0.1*t)**2).sum()
-        def constraint_func(indiv, b, t): return 0
-    elif experiment == Experiment.exp4:
-        def fitness_func(indiv, b, t): return ((indiv.data-b[t]*np.sin(np.pi/2*t))**2).sum()
-        def constraint_func(indiv, b, t): return 0
+def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[Callable]:
+    if func_name==FuncName.sphere:
+        if experiment in [Experiment.exp1, Experiment.exp2]:
+            def fitness_func(indiv, b, t): return (indiv.data**2).sum()
+            def constraint_func(indiv, b, t): return -b[t] + sum((1/np.sqrt(D))*indiv.data)
+        elif experiment == Experiment.exp3:
+            def fitness_func(indiv, b, t): return ((indiv.data + 0.1*t)**2).sum()
+            def constraint_func(indiv, b, t): return 0
+        elif experiment == Experiment.exp4:
+            def fitness_func(indiv, b, t): return ((indiv.data-b[t]*np.sin(np.pi/2*t))**2).sum()
+            def constraint_func(indiv, b, t): return 0
+    elif func_name==FuncName.rastrigin:
+        if experiment in [Experiment.exp1, Experiment.exp2]:
+            def fitness_func(indiv, b, t): return 10*D+((indiv.data**2)-10*np.cos(2*np.pi*indiv.data)).sum()
+            def constraint_func(indiv, b, t): return -b[t] + sum((1/np.sqrt(D))*indiv.data)
+        elif experiment == Experiment.exp3:
+            def fitness_func(indiv, b, t): return 10*D+(((indiv.data+0.1*t)**2)-10*np.cos(2*np.pi*indiv.data)).sum()
+            def constraint_func(indiv, b, t): return 0
+        elif experiment == Experiment.exp4:
+            def fitness_func(indiv, b, t): return 10*D+(((indiv.data-b[t]*np.sin(np.pi/2*t))**2)-10*np.cos(2*np.pi*indiv.data)).sum()
+            def constraint_func(indiv, b, t): return 0    
 
     return fitness_func,constraint_func
 
-def main(experiment:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
+def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
          max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
-    path = Path(f'../../data/results/{experiment}')
-    fitness_func,constraint_func = get_functions(experiment_type, D)
+    func_type = getattr(FuncName, func_name)
+    path = Path(f'../../data/results/{experiment}/{func_name}')
+    fitness_func,constraint_func = get_functions(experiment_type, D, func_type)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     experiment_name = f'{method}'
     total_generations = max_times * frequency + 1_000
