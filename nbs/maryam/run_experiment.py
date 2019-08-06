@@ -53,14 +53,14 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
             def constraint_func(indiv, b, t): return 0                
     elif func_name==FuncName.rosenbrock:
         if experiment in [Experiment.exp1, Experiment.exp2]:
-            def fitness_func(indiv, b, t): return ((100 * (indiv.data[1:] - indiv.data[:-1]**2)**2) + (1-indiv.data[1:]**2)).sum()
+            def fitness_func(indiv, b, t): return ((100 * (indiv.data[1:] - indiv.data[:-1]**2)**2) + (1-indiv.data[:-1])**2).sum()
             def constraint_func(indiv, b, t): return -b[t] + sum((1/np.sqrt(D))*indiv.data)
         elif experiment == Experiment.exp3:
-            def fitness_func(indiv, b, t): return 10*D+(((indiv.data+0.1*t)**2)-10*np.cos(2*np.pi*indiv.data)).sum()
+            def fitness_func(indiv, b, t): return (((100 * ((indiv.data[1:]+0.1*t) - (indiv.data[:-1]+0.1*t)**2)**2) + (1-indiv.data[:-1]-0.1*t)**2).sum()
             def constraint_func(indiv, b, t): return 0
         elif experiment == Experiment.exp4:
-            def fitness_func(indiv, b, t): return 10*D+(((indiv.data-b[t]*np.sin(np.pi/2*t))**2)-10*np.cos(2*np.pi*indiv.data)).sum()
-            def constraint_func(indiv, b, t): return 0 
+            def fitness_func(indiv, b, t): return (((100 * ((indiv.data[1:]-b[t]*np.sin(np.pi/2*t)) - (indiv.data[:-1]-b[t]*np.sin(np.pi/2*t))**2)**2) + (1-indiv.data[:-1]+b[t]*np.sin(np.pi/2*t))**2)).sum()
+            def constraint_func(indiv, b, t): return 0  
     return fitness_func,constraint_func
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
