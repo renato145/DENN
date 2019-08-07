@@ -107,7 +107,7 @@ class NNTrainer(Callback):
 
     def apply_predictions(self)->None:
         # Get predictions
-        preds = self.get_next_best().view(1,-1).repeat(self.n,1).fill_(99)
+        preds = self.get_next_best().view(1,-1).repeat(self.n,1)
         # Add noise
         noise = torch.FloatTensor(*preds.shape).uniform_(-self.noise_range,self.noise_range)
         preds.add_(noise)

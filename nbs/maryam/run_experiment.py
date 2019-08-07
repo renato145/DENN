@@ -56,7 +56,7 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
             def fitness_func(indiv, b, t): return ((100 * (indiv.data[1:] - indiv.data[:-1]**2)**2) + (1-indiv.data[:-1])**2).sum()
             def constraint_func(indiv, b, t): return -b[t] + sum((1/np.sqrt(D))*indiv.data)
         elif experiment == Experiment.exp3:
-            def fitness_func(indiv, b, t): return (((100 * ((indiv.data[1:]+0.1*t) - (indiv.data[:-1]+0.1*t)**2)**2) + (1-indiv.data[:-1]-0.1*t)**2).sum()
+            def fitness_func(indiv, b, t): return ((100 * ((indiv.data[1:]+0.1*t) - (indiv.data[:-1]+0.1*t)**2)**2) + (1-indiv.data[:-1]-0.1*t)**2).sum()
             def constraint_func(indiv, b, t): return 0
         elif experiment == Experiment.exp4:
             def fitness_func(indiv, b, t): return (((100 * ((indiv.data[1:]-b[t]*np.sin(np.pi/2*t)) - (indiv.data[:-1]-b[t]*np.sin(np.pi/2*t))**2)**2) + (1-indiv.data[:-1]+b[t]*np.sin(np.pi/2*t))**2)).sum()
@@ -64,7 +64,7 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
     return fitness_func,constraint_func
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
-         max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, save:bool=True, pbar:bool=True):
+         max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, save:bool=True, pbar:bool=True, silent:bool=True):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
@@ -110,7 +110,7 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
                            max_times=max_times, frequency=frequency, callbacks=callbacks,
                            metrics=[speed_metric, ModifiedOfflineError, OfflineError, AbsoluteRecoverRate],
                            optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv)
-        opt.run(total_generations, silent=True)
+        opt.run(total_generations, show_graph=False, show_report=False, silent=silent)
 
         # Store results
         results['mof'].append(opt.modified_offline_error.metrics)

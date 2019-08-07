@@ -109,7 +109,7 @@ class CallbackHandler():
                     if self.optim.have_constraints: self.optim.eval_constraints(ind)
                     ind.gen = self.state_dict['gen']
                     ind.time = self.state_dict['time']
-                    if i > 0: self.state_dict['best'] = self.optim.get_best(ind, self.state_dict['best'])
+                    if i > 0: self.state_dict['best'] = self.optim.get_best(ind, self.state_dict['best']).clone()
 
                 indiv = population[indiv.idx]
                 self.state_dict['last_indiv'] = indiv
@@ -180,8 +180,8 @@ class CallbackHandler():
         new_indiv.gen = self.state_dict['gen']
         new_indiv.time = self.state_dict['time']
 
-        if self.state_dict['best'] is None: self.state_dict['best'] = new_indiv
-        else                              : self.state_dict['best'] = self.optim.get_best(new_indiv, self.state_dict['best'])
+        if self.state_dict['best'] is None: self.state_dict['best'] = new_indiv.clone()
+        else                              : self.state_dict['best'] = self.optim.get_best(new_indiv, self.state_dict['best']).clone()
 
         self.state_dict['new_indiv'] = new_indiv
         self.state_dict['change_indiv'] = change
