@@ -7,8 +7,8 @@
 #exp1
 ~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 rosenbrock noNNReval  --runs 20 --frequency 1200
 #~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 noNNRestart  --runs 30 --frequency 1200
-~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 rosenbrock NNnorm  Worst --runs 20 --frequency 1000
-~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 rosenbrock NNdrop  Worst --runs 20 --frequency 1000
+#~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 rosenbrock NNnorm  Worst --runs 20 --frequency 1000
+#~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 rosenbrock NNdrop  Worst --runs 20 --frequency 1000
 #~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 rosenbrock NNnorm  Closest --runs 30 --frequency 1000
 #~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 rosenbrock NNdrop  Closest --runs 30 --frequency 1000
 #~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 rosenbrock NNnorm  Random --runs 30 --frequency 1000
