@@ -127,7 +127,7 @@ class NNTrainer(Callback):
 
     def get_next_best(self)->Tensor:
         with torch.no_grad():
-            xb = torch.from_numpy(np.vstack([(e.data) for e in self.data[-self.window:]])).float()[None]
+            xb = torch.from_numpy(np.vstack([(e[0].data) for e in self.data[-self.window:]])).float()[None]
             pred = self.model.eval()(xb.to(self.device))[0]
             return pred.cpu()
 
