@@ -113,6 +113,10 @@ class Population:
 
         return [self[idx] for idx in idxs[:n]]
 
+    def get_n_best(self, n:Optional[int]=None)->Collection[Individual]:
+        n = ifnone(n, self.n)
+        return self.get_n_worse()[::-1][:n]
+
     def get_closest(self, position:np.ndarray)->Tuple[np.ndarray,np.ndarray]:
         'Returns the population idxs sorted by euclidean distance and the distances'
         distances = np.asarray([np.linalg.norm(indiv.data-position) for indiv in self])
