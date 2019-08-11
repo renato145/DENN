@@ -98,7 +98,7 @@ class NNTrainer(Callback):
         for idxs in product(range(self.sample_size), repeat=w):
             tx = torch.from_numpy(np.vstack([x[idx].data for idx,x in zip(idxs,this_x)])).float()
             data_x.append(tx)
-            
+
         data_x = torch.stack(data_x).float()
         data_y = torch.from_numpy(self.data[-1][0].data).float() # The best individual of the last time
         self.data_x.append(data_x)
