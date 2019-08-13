@@ -95,25 +95,48 @@ class CallbackHandler():
 
     def on_detect_change_end(self, **kwargs:Any)->None:
         if not self.state_dict['skip_detect_change']:
+            self.state_dict['detected_idxs'] = []
             indiv = self.state_dict['last_indiv']
             indiv_bkup = self.state_dict['indiv_bkup']
+            # 1) Check if something changed
             self.state_dict['change_detected'] = indiv != indiv_bkup
-            self('detect_change_end')
-            indiv = self.state_dict['last_indiv']
-
+            
             if self.state_dict['change_detected']:
+                # Change detected
                 population = self.optim.population
-                for i,ind in enumerate([self.state_dict['best']] + population.individuals):
+                # 2) Revaluate population
+                for ind in population.individuals:
                     self.state_dict['last_indiv'] = ind
                     self.optim.eval_fitness(ind)
                     if self.optim.have_constraints: self.optim.eval_constraints(ind)
                     ind.gen = self.state_dict['gen']
                     ind.time = self.state_dict['time']
-                    if i > 0: self.state_dict['best'] = self.optim.get_best(ind, self.state_dict['best']).clone()
+
+                for i,ind in enumerate(population.individuals):
+                    if i == 0: best = ind
+                    else     : best = self.optim.get_best(best, ind)
+                    
+                self.state_dict['best'] = best.clone()
+
+                self('detect_change_end') # 3) Call callbacks like NN or RestartPopulation
+
+                # 4) Revaluate changed individuals
+                for i in self.state_dict['detected_idxs']:
+                    ind = population[i]
+                    self.state_dict['last_indiv'] = ind
+                    self.optim.eval_fitness(ind)
+                    if self.optim.have_constraints: self.optim.eval_constraints(ind)
+                    ind.gen = self.state_dict['gen']
+                    ind.time = self.state_dict['time']
+                    self.state_dict['best'] = self.optim.get_best(ind, self.state_dict['best']).clone()
 
                 indiv = population[indiv.idx]
                 self.state_dict['last_indiv'] = indiv
                 self.state_dict['indiv_bkup'] = indiv.clone()
+                
+                # Is the best known in the population?
+                if not any(self.state_dict['best']==ind for ind in population):
+                    population.get_worse().copy_from(self.state_dict['best'])
 
         return self.state_dict['last_indiv'],self.state_dict['change_detected']
 

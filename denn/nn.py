@@ -54,39 +54,43 @@ class NNTrainer(Callback):
         optim.callbacks.append(NNTimer)
         optim.metrics.append(NNTimer)
 
-    def _replace_random(self, preds:np.ndarray=1)->None:
+    def _replace_random(self, preds:np.ndarray=1)->Collection[int]:
         idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
-        for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
+        return idxs
 
-    def _replace_closest(self, preds:np.ndarray)->None:
+    def _replace_closest(self, preds:np.ndarray)->Collection[int]:
         idxs = []
         for pred in preds:
             this_idxs,_ = self.optim.population.get_closest(pred)
             this_idx = [idx for idx in this_idxs if idx not in idxs][0]
             idxs.append(this_idx)
-        
-        for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
 
-    def _replace_worst(self, preds:np.ndarray)->None:
+        return idxs
+
+    def _replace_worst(self, preds:np.ndarray)->Collection[int]:
         idxs = [e.idx for e in self.optim.population.get_n_worse(self.n)]
+        return idxs
+
+    def modify_population(self, preds:np.ndarray)->Collection[int]:
+        if   self.replace_mechanism==ReplaceMechanism.Random : idxs = self._replace_random (preds)
+        elif self.replace_mechanism==ReplaceMechanism.Closest: idxs = self._replace_closest(preds)
+        elif self.replace_mechanism==ReplaceMechanism.Worst  : idxs = self._replace_worst  (preds)
         for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
+        return idxs
 
-    def modify_population(self, preds:np.ndarray)->None:
-        if   self.replace_mechanism==ReplaceMechanism.Random : self._replace_random (preds)
-        elif self.replace_mechanism==ReplaceMechanism.Closest: self._replace_closest(preds)
-        elif self.replace_mechanism==ReplaceMechanism.Worst  : self._replace_worst  (preds)
-
-    def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->None:
+    def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->dict:
         start_time = get_time()
+        idxs = []
         if change_detected:
             this_bests = [indiv.clone() for indiv in self.optim.population.get_n_best(self.sample_size)]
             self.data.append(this_bests)
             if (len(self.data)-self.window-1) > 0: self.update_data()
             if self.batch_per_time*(len(self.data)-self.window-1) >= self.min_batches:
                 self.do_train()
-                self.apply_predictions()
+                idxs = self.apply_predictions()
 
         self.optim.nn_timer.times.append(get_time() - start_time)
+        return {'detected_idxs':idxs}
 
     def on_run_end(self, **kwargs:Any)->None:
         self.model.eval()
@@ -136,7 +140,7 @@ class NNTrainer(Callback):
             pred = self.model.eval()(xb.to(self.device))[0]
             return pred.cpu()
 
-    def apply_predictions(self)->None:
+    def apply_predictions(self)->Collection[int]:
         # Get predictions
         preds = self.get_next_best().view(1,-1).repeat(self.n,1)
         # Add noise
@@ -144,13 +148,13 @@ class NNTrainer(Callback):
         preds.add_(noise)
         preds = preds.numpy()
         # Modify population
-        self.modify_population(preds)
+        return self.modify_population(preds)
 
 class NNTrainerNoNoise(NNTrainer):
-    def apply_predictions(self)->None:
+    def apply_predictions(self)->Collection[int]:
         # Get predictions
         preds = [self.get_next_best() for _ in repeat(None, self.n)]
         preds = torch.stack(preds, dim=0).numpy()
         # Modify population
-        self.modify_population(preds)
+        return self.modify_population(preds)
 
