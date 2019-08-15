@@ -18,6 +18,7 @@ class Callback():
     def on_gen_begin(self, **kwargs:Any)->None: pass
     def on_individual_begin(self, **kwargs:Any)->None: pass
     def on_detect_change_begin(self, **kwargs:Any)->None: pass
+    def on_detect_change_end_before_reval(self, **kwargs:Any)->None: pass
     def on_detect_change_end(self, **kwargs:Any)->None: pass
     def on_evolve_begin(self, **kwargs:Any)->None: pass
     def on_evolve_end(self, **kwargs:Any)->None: pass
@@ -118,6 +119,7 @@ class CallbackHandler():
             self.state_dict['change_detected'] = indiv != indiv_bkup
             
             if self.state_dict['change_detected']:
+                self('detect_change_end_before_reval')
                 # Change detected
                 population = self.optim.population
                 # 2) Revaluate population
@@ -135,7 +137,7 @@ class CallbackHandler():
                     
                 self.state_dict['best'] = best.clone()
 
-                self('detect_change_end') # 3) Call callbacks like NN or RestartPopulation
+                self('detect_change_end') # 3) Call callbacks like NN
 
                 # 4) Revaluate changed individuals
                 for i in self.state_dict['detected_idxs']:
@@ -146,7 +148,7 @@ class CallbackHandler():
                     ind.gen = self.state_dict['gen']
                     ind.time = self.state_dict['time']
                     self.state_dict['best'] = self.optim.get_best(ind, self.state_dict['best']).clone()
-##what is the following three lines!!??
+
                 indiv = population[indiv.idx]
                 self.state_dict['last_indiv'] = indiv
                 self.state_dict['indiv_bkup'] = indiv.clone()
@@ -217,9 +219,9 @@ class CallbackHandler():
         indiv_bkup = self.state_dict['indiv_bkup']
         new_indiv = self.optim.get_best(indiv, indiv_bkup)
         change = new_indiv != indiv
-        # if not change: # If we keep the parent dont update gen and time information
-        new_indiv.gen = self.state_dict['gen']
-        new_indiv.time = self.state_dict['time']
+        if not change: # If we keep the parent dont update gen and time information
+            new_indiv.gen = self.state_dict['gen']
+            new_indiv.time = self.state_dict['time']
 
         if self.state_dict['best'] is None: self.state_dict['best'] = new_indiv.clone()
         else                              : self.state_dict['best'] = self.optim.get_best(new_indiv, self.state_dict['best']).clone()
@@ -266,7 +268,7 @@ class CallbackHandler():
         self('cancel_run')
 
 class OnChangeRestartPopulation(Callback):
-    def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->None:
+    def on_detect_change_end_before_reval(self, change_detected:bool, **kwargs:Any)->None:
         if change_detected: self.optim.population.refresh()
 
 class Recorder(Callback):
