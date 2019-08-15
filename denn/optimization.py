@@ -88,37 +88,28 @@ class Population:
         for indiv in self.individuals: indiv.refresh()
 
     def get_worse(self)->Individual:
-        not_feasible = [(i,e) for i,e in enumerate(self) if not e.is_feasible]
-        if len(not_feasible) > 0:
-            idxs,not_feasible = zip(*not_feasible)
-            idx = idxs[np.argmax([e.fitness_value for e in not_feasible])]
-        else:
-            idx =      np.argmax([e.fitness_value for e in self])
-
-        return self[idx]
+        return self.get_n_worse(1)[0]
 
     def get_n_worse(self, n:Optional[int]=None)->Collection[Individual]:
-        idxs = []
-        n = ifnone(n, self.n)
-        if n==1: return [self.get_worse()]
-        feasible_idxs     = {indiv.idx for indiv in self if indiv.is_feasible}
-        not_feasible_idxs = set(range(self.n)) - feasible_idxs
-        feasible_idxs,not_feasible_idxs = [np.asarray(list(e)) for e in [feasible_idxs,not_feasible_idxs]]
-
-        if len(not_feasible_idxs) > 0:
-            idxs += not_feasible_idxs[np.argsort([self[i].fitness_value for i in not_feasible_idxs])[::-1]].tolist()
-
-        if len(feasible_idxs) > 0:
-            idxs += feasible_idxs    [np.argsort([self[i].fitness_value for i in     feasible_idxs])[::-1]].tolist()
-
-        return [self[idx] for idx in idxs[:n]]
+        return self.get_n_best()[::-1][:n]
 
     def get_best(self)->Individual:
         return self.get_n_best(1)[0]
 
     def get_n_best(self, n:Optional[int]=None)->Collection[Individual]:
+        idxs = []
         n = ifnone(n, self.n)
-        return self.get_n_worse()[::-1][:n]
+        feasible_idxs     = {indiv.idx for indiv in self if indiv.is_feasible}
+        not_feasible_idxs = set(range(self.n)) - feasible_idxs
+        feasible_idxs,not_feasible_idxs = [np.asarray(list(e)) for e in [feasible_idxs,not_feasible_idxs]]
+
+        if len(feasible_idxs) > 0:
+            idxs += feasible_idxs    [np.argsort([self[i].fitness_value   for i in     feasible_idxs])].tolist()
+
+        if len(not_feasible_idxs) > 0:
+            idxs += not_feasible_idxs[np.argsort([self[i].constraints_sum for i in not_feasible_idxs])].tolist()
+        
+        return [self[idx] for idx in idxs[:n]]
 
     def get_closest(self, position:np.ndarray)->Tuple[np.ndarray,np.ndarray]:
         'Returns the population idxs sorted by euclidean distance and the distances'
