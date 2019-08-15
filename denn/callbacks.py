@@ -129,7 +129,7 @@ class CallbackHandler():
                     ind.gen = self.state_dict['gen']
                     ind.time = self.state_dict['time']
                     self.state_dict['best'] = self.optim.get_best(ind, self.state_dict['best']).clone()
-
+##what is the following three lines!!??
                 indiv = population[indiv.idx]
                 self.state_dict['last_indiv'] = indiv
                 self.state_dict['indiv_bkup'] = indiv.clone()
