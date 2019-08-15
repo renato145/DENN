@@ -70,6 +70,22 @@ class CallbackHandler():
         self.silent = silent
         self.state_dict.update(dict(run_gens=generations, gen_end=gen_end, pbar=pbar, max_evals=max_evals, max_times=max_times, max_time_reached=False,
                                     frequency=frequency, show_graph=show_graph, update_each=update_each, show_report=show_report, silent=silent))
+        
+        # At the beginning of the optimization we evaluate the whole population
+        population = self.optim.population
+        for ind in population.individuals:
+            self.state_dict['last_indiv'] = ind
+            self.optim.eval_fitness(ind)
+            if self.optim.have_constraints: self.optim.eval_constraints(ind)
+            ind.gen = self.state_dict['gen']
+            ind.time = self.state_dict['time']
+        
+        # Get the best from the population
+        for i,ind in enumerate(population.individuals):
+            if i == 0: best = ind
+            else     : best = self.optim.get_best(best, ind)
+            
+        self.state_dict['best'] = best.clone()
         self('run_begin')
 
     def on_gen_begin(self, **kwargs:Any)->None:
@@ -111,7 +127,8 @@ class CallbackHandler():
                     if self.optim.have_constraints: self.optim.eval_constraints(ind)
                     ind.gen = self.state_dict['gen']
                     ind.time = self.state_dict['time']
-
+                
+                # Get the best from the population
                 for i,ind in enumerate(population.individuals):
                     if i == 0: best = ind
                     else     : best = self.optim.get_best(best, ind)
