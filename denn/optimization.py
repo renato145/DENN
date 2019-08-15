@@ -284,15 +284,7 @@ class Optimization:
             self.process_individuals()
 
         except CancelGenException as exception: self.cb_handler.on_cancel_gen(exception)
-        finally:
-            self.cb_handler.on_gen_end()
-            if getattr(self, 'last_best_indiv', False):
-                last_best = self.last_best_indiv
-                q = self.get_fitness(self.last_best_indiv, self.fitness_params, self.state_dict['time'])
-                w = self.get_fitness(self.best           , self.fitness_params, self.state_dict['time'])
-                if q > w:
-                   print('oh no')
-            self.last_best_indiv = self.best.clone()
+        finally: self.cb_handler.on_gen_end()
 
     def run(self, generations:int, show_graph:bool=True, update_each:int=10, show_report:bool=True, silent:bool=False)->None:
         pbar = range(1) if silent else master_bar(range(1))
