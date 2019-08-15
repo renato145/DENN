@@ -54,7 +54,7 @@ class NNTrainer(Callback):
         optim.callbacks.append(NNTimer)
         optim.metrics.append(NNTimer)
 
-    def _replace_random(self, preds:np.ndarray=1)->Collection[int]:  ###why np.array=1??
+    def _replace_random(self, preds:np.ndarray)->Collection[int]:
         idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
         return idxs
 
@@ -149,7 +149,8 @@ class NNTrainer(Callback):
         preds = preds.numpy()
         # Modify population
         return self.modify_population(preds)
-##this method is used as the model for dropout
+    
+# This method is used as the model for dropout
 class NNTrainerNoNoise(NNTrainer):
     def apply_predictions(self)->Collection[int]:
         # Get predictions
