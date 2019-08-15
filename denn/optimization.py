@@ -286,11 +286,12 @@ class Optimization:
         except CancelGenException as exception: self.cb_handler.on_cancel_gen(exception)
         finally:
             self.cb_handler.on_gen_end()
-            last_time,last_best,last_feasible = getattr(self,'last_time',0), getattr(self,'last_best',999999),getattr(self,'last_feasible',False)    
-            if last_time == self.best.time:
-                if (self.best.fitness_value > last_best) and self.best.is_feasible and last_feasible:
-                   print(f'{self.best.time} - {self.best.fitness_value}')
-            self.last_time, self.last_best,self.last_feasible,self.last_sumcv =self.best.time, self.best.fitness_value,self.best.is_feasible,self.best.constraints_sum
+            if getattr(self, 'last_best_indiv', False):
+                last_best = self.last_best_indiv
+                q = self.get_fitness(self.last_best_indiv, self.fitness_params, self.state_dict['time'])
+                w = self.get_fitness(self.best           , self.fitness_params, self.state_dict['time'])
+                if q > w:
+                   print('oh no')
             self.last_best_indiv = self.best.clone()
 
     def run(self, generations:int, show_graph:bool=True, update_each:int=10, show_report:bool=True, silent:bool=False)->None:

@@ -217,6 +217,7 @@ class CallbackHandler():
         indiv_bkup = self.state_dict['indiv_bkup']
         new_indiv = self.optim.get_best(indiv, indiv_bkup)
         change = new_indiv != indiv
+        # if not change: # If we keep the parent dont update gen and time information
         new_indiv.gen = self.state_dict['gen']
         new_indiv.time = self.state_dict['time']
 
