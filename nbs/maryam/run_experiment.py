@@ -98,17 +98,17 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
         if is_nn:
             if method_type==Method.NNnorm:
                 model = SimpleModel (d=D, w=nn_window, nf=nn_nf) 
-                nn_trainer = partial(NNTrainerNoNoise, model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
+                nn_trainer = partial(NNTrainer, model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
                                      train_window=nn_train_window, replace_mechanism=replace_type)
             if method_type==Method.NNdrop:
                 model = DropoutModel(d=D, w=nn_window, nf=nn_nf) 
-                nn_trainer = partial(NNTrainer       , model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
+                nn_trainer = partial(NNTrainerNoNoise  , model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
                                      train_window=nn_train_window, replace_mechanism=replace_type)
             
             callbacks.append(nn_trainer)
         elif method_type==Method.noNNRestart:
             callbacks.append(OnChangeRestartPopulation)
-
+        #first pop created here and passed to optimization
         population = Population.new_random(dimension=D)
         speed_metric = partial(SpeedMetric, threadhold=0.1)
         opt = Optimization(population, fitness_func, constraint_func, fitness_params=ab, constraint_params=[ab],
