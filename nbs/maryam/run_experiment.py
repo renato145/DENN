@@ -65,12 +65,13 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
          max_times:int=100, nn_window:int=5, nn_train_window:Optional[int]=None, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, save:bool=True, pbar:bool=True,
-         silent:bool=True):
+         silent:bool=True, cluster:bool=False):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
     func_type = getattr(FuncName, func_name)
     path = Path(f'../../data/results/{experiment}/{func_name}')
+    if cluster: path = Path(f'DENN/data/cluster_results/{experiment}/{func_name}') # this is for the cluster
     out_path = path / f'freq{frequency}nn_w{nn_window}nn_p{3}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
     out_path.mkdir(parents=True, exist_ok=True)
     fitness_func,constraint_func = get_functions(experiment_type, D, func_type)
@@ -82,10 +83,17 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
         replace_type = getattr(ReplaceMechanism, replace_mech)
 
     # Read files
-    ab = pd.read_csv(path/'dC_01.csv')['b'].values
-    df = pd.read_csv(path/'best_known.csv')
-    best_known_fitness = df['fitness'].values
-    best_known_sumcv   = df['sum_constraints'].values
+    if cluster:
+        tmp_path = Path(f'DENN/data/results/{experiment}/{func_name}')
+        ab = pd.read_csv(tmp_path/'dC_01.csv')['b'].values
+        df = pd.read_csv(tmp_path/'best_known.csv')
+        best_known_fitness = df['fitness'].values
+        best_known_sumcv   = df['sum_constraints'].values
+    else:
+        ab = pd.read_csv(path/'dC_01.csv')['b'].values
+        df = pd.read_csv(path/'best_known.csv')
+        best_known_fitness = df['fitness'].values
+        best_known_sumcv   = df['sum_constraints'].values
 
     # Initialize metrics
     results = {'mof':[], 'sr':[], 'nfe':[], 'fitness':[], 'sumcv':[], 'arr':[]}
