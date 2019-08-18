@@ -102,9 +102,10 @@ class AbsoluteRecoverRate(Metric):
         self.n_time_gen += 1
         if max_time_reached: return
         if self.this_time_first_best is None:
-            if best.is_feasible:
+            if best.is_feasible and (best.time==time):
                 self.this_time_first_best = best.fitness_value
-                if (self.n_time_gen==1) and (self.this_time_first_best==self.optimal_fitness(time)):
+                diff = abs(self.this_time_first_best - self.optimal_fitness(time))
+                if (self.n_time_gen==1) and (diff < 1e-4):
                     self.best_case = True
         else:
             if best.is_feasible:
@@ -116,11 +117,8 @@ class AbsoluteRecoverRate(Metric):
             if self.best_case:
                 self.time_values.append(1.0)
             else:
-                if (self.this_time_first_best<0.0001) and (self.optimal_fitness(time)<0.0001):
-                    self.time_values.append(1.0)
-                else:
-                    val = self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best))
-                    self.time_values.append(val)
+                val = self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best))
+                self.time_values.append(val)
         self.this_time_first_best = None
         self.acummulated_sum = 0.0
         self.n_time_gen = 0.0
