@@ -64,8 +64,8 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
     return fitness_func,constraint_func
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
-         max_times:int=100, nn_window:int=5, nn_train_window:Optional[int]=None, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, save:bool=True, pbar:bool=True,
-         silent:bool=True, cluster:bool=False):
+         max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, save:bool=True, pbar:bool=True,
+         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
