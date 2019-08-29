@@ -65,14 +65,14 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
          max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, save:bool=True, pbar:bool=True,
-         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freqSave:int=1_000):
+         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1_000):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
     func_type = getattr(FuncName, func_name)
     path = Path(f'../../data/results/{experiment}/{func_name}')
     if cluster: path = Path(f'DENN/data/cluster_results/{experiment}/{func_name}') # this is for the cluster
-    out_path = path / f'freq{freqSave}nn_w{nn_window}nn_p{3}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
+    out_path = path / f'freq{freq_save}nn_w{nn_window}nn_p{3}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
     out_path.mkdir(parents=True, exist_ok=True)
     fitness_func,constraint_func = get_functions(experiment_type, D, func_type)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
