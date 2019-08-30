@@ -72,7 +72,7 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
     func_type = getattr(FuncName, func_name)
     path = Path(f'../../data/results/{experiment}/{func_name}')
     if cluster: path = Path(f'DENN/data/cluster_results/{experiment}/{func_name}') # this is for the cluster
-    out_path = path / f'freq{freq_save}nn_w{nn_window}nn_p{3}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
+    out_path = path / f'freq{freq_save}nn_w{nn_window}nn_p{3}nn_s{nn_sample_size}nn_tw{nn_train_window}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
     out_path.mkdir(parents=True, exist_ok=True)
     fitness_func,constraint_func = get_functions(experiment_type, D, func_type)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
