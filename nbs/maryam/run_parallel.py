@@ -4,8 +4,8 @@ from parallel_ex import ParallelEx
 def run():
     kwargs = [
        # dict(experiment='exp2', func_name='sphere', method='NNnorm', replace_mech='Random', runs=1, frequency=1000, pbar=False),
-        dict(experiment='exp2', func_name='sphere', method='NNnorm', replace_mech='Random', runs=1, frequency=1000, nn_train_window=3,
-            nn_sample_size=2, pbar=False),
+        dict(experiment='exp2', func_name='sphere', method='NNnorm', replace_mech='Random', runs=1, frequency=1000, nn_train_window=5,
+            nn_sample_size=2, pbar=False, batch_size=4, nn_epochs=5),
        # dict(experiment='exp2', func_name='sphere', method='NNnorm', replace_mech='Random', runs=1, frequency=1000, nn_train_window=5,
         #    nn_sample_size=5, pbar=False),
 
