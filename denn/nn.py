@@ -162,34 +162,29 @@ class NNTrainerNoNoise(NNTrainer):
 class EvaluationCompensation(Callback):
     _order = 11 # Needs to run after Neural Network
 
-    def __init__(self, optim:'Optimization', samples:int=30):
-        '''This callback takes into account the time for `get_fitness` function and add the
-           corresponding number of fitness evaluation to the optimizer.'''
-        super().__init__(optim)
-        self.samples = samples
-        # Measure the average time of `get_fitness` function.
-        # Create samples
-        sample_population = Population.new_random(n=self.samples, dimension=self.optim.population.dimension)
-        # Measure the time
-        self.avg_fitness_time = np.mean([self.measure_fitness_time(indiv) for indiv in sample_population])
-
     def measure_fitness_time(self, indiv:Individual)->float:
         start_time = get_time()
         self.optim.get_fitness(indiv, self.optim.fitness_params, 0)
         return get_time() - start_time
 
-    def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->dict:
+    def on_detect_change_end(self, change_detected:bool, evals:int, **kwargs:Any)->dict:
         'Add number of evaluations when neural network runs.'
-        if change_detected:
+        # t0: optimization begins at this time 
+        # t1: optimization ends at this time
+        # t2: neural ends at this time
+        if change_detected and hasattr(self, 't0'):
             # Grab time for neural network
-            nn_time = self.optim.nn_timer.times[-1]
-            n_fitness_evals = int(nn_time / self.avg_fitness_time)
+            t0,t2 = self.t0,get_time()
+            nn_time = self.optim.nn_timer.times[-1] # t2 - t1
+            # n_fitness_evals = frequency * (t2-t1)/(t1-t0)
+            n_fitness_evals = int(self.optim.frequency * nn_time / (t2-t0-nn_time))
             # Check if time needed to change
-            current_evals = self.optim.state_dict['evals']
             # change_time = any((o%self.optim.frequency)==0 for o in
-            #                   range(current_evals,current_evals+n_fitness_evals+1))
+            #                   range(evals,evals+n_fitness_evals+1))
             # # Add to number of fitness evaluations
             # self.optim.state_dict['evals'] += n_fitness_evals
             # self.optim.state_dict['time_evals'] += n_fitness_evals
             # # Change time if needed
             # self.optim.change_time(self.optim.state_dict['evals'])
+
+        self.t0 = get_time()
