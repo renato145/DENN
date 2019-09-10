@@ -162,6 +162,17 @@ class NNTrainerNoNoise(NNTrainer):
 class EvaluationCompensation(Callback):
     _order = 11 # Needs to run after Neural Network
 
+    def __init__(self, optim:'Optimization', samples:int=30):
+        '''This callback takes into account the time for `get_fitness` function and add the
+           corresponding number of fitness evaluation to the optimizer.'''
+        super().__init__(optim)
+        self.samples = samples
+        # Measure the average time of `get_fitness` function.
+        # Create samples
+        sample_population = Population.new_random(n=self.samples, dimension=self.optim.population.dimension)
+        # Measure the time
+        self.avg_fitness_time = np.mean([self.measure_fitness_time(indiv) for indiv in sample_population])
+
     def measure_fitness_time(self, indiv:Individual)->float:
         start_time = get_time()
         self.optim.get_fitness(indiv, self.optim.fitness_params, 0)
@@ -173,18 +184,38 @@ class EvaluationCompensation(Callback):
         # t1: optimization ends at this time
         # t2: neural ends at this time
         if change_detected and hasattr(self, 't0'):
-            # Grab time for neural network
+            # Grab time for neural network(because its end of detect change we know already neural network has been run)
             t0,t2 = self.t0,get_time()
             nn_time = self.optim.nn_timer.times[-1] # t2 - t1
-            # n_fitness_evals = frequency * (t2-t1)/(t1-t0)
-            n_fitness_evals = int(self.optim.frequency * nn_time / (t2-t0-nn_time))
-            # Check if time needed to change
-            # change_time = any((o%self.optim.frequency)==0 for o in
-            #                   range(evals,evals+n_fitness_evals+1))
-            # # Add to number of fitness evaluations
-            # self.optim.state_dict['evals'] += n_fitness_evals
-            # self.optim.state_dict['time_evals'] += n_fitness_evals
-            # # Change time if needed
-            # self.optim.change_time(self.optim.state_dict['evals'])
+            # n_fitness_evals: frequency * (t2-t1)/(t1-t0)
+            last_n_fitness_evals = getattr(self, 'last_n_fitness_evals', 0)
+            # print(self.optim.frequency-last_n_fitness_evals)
+            n_fitness_evals = int((self.optim.frequency-last_n_fitness_evals) *nn_time / (t2-t0-nn_time))
+            # n_fitness_evals=int(nn_time/self.avg_fitness_time)
+            # print(n_fitness_evals)
+           
+            # print(f'averahefitness:{self.avg_fitness_time}')
+            # print(nn_time)
+            # print(f't2-t0:{t2-t0}, nn_time:{nn_time}')
+            # print(nn_time/(t2-t0-nn_time))
+            # if n_fitness_evals>2000:
+            #     print(f'n_eval:{n_fitness_evals}!')
+            #     print(nn_time / (t2-t0-nn_time))
 
+            self.last_n_fitness_evals = n_fitness_evals
+            #print(last_n_fitness_evals)
+            # Check if time needed to change
+            change_time = any((o%self.optim.frequency)==0 for o in
+                              range(evals,evals+n_fitness_evals+1))
+            # Add to number of fitness evaluations
+            self.optim.state_dict['evals'] += n_fitness_evals
+            self.optim.state_dict['time_evals'] += n_fitness_evals
+            #print(self.optim.state_dict['time_evals'])
+            # Change time if needed
+            if change_time:
+               # print(f'Too big n_fitness_evals: {n_fitness_evals}!!!!!')
+                
+                self.optim.cb_handler.on_time_change()
+
+#this is end of detectchange, grabing time at this time is start for the next optimization time
         self.t0 = get_time()
