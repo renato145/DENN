@@ -222,7 +222,7 @@ class Optimization:
 
     def change_time(self, evals:int)->None:
         if self.have_time:
-            if evals % self.frequency == 0:
+            if evals % self.frequency == 0:#get_time()-t0==100
                 self.cb_handler.on_time_change()
 
     def detect_change(self, indiv:Individual)->None:
