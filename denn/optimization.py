@@ -218,12 +218,16 @@ class Optimization:
         except CancelFitnessException as exception: self.cb_handler.on_fitness_cancel(exception)
         finally:
             evals = self.cb_handler.on_fitness_end(fitness=fitness)
-            self.change_time(evals)
+            self.change_time()
 
-    def change_time(self, evals:int)->None:
+    def change_time(self)->None:
         if self.have_time:
-            if evals % self.frequency == 0:#get_time()-t0==100
+            this_time = get_time() - self.t0
+            if this_time >= self.frequency: # get_time()-t0==100
+                #print(f'\n Evals: {self.cb_handler.optim.state_dict["time_evals"]}\n')
+                #print(f'\n Time: {this_time}\n')
                 self.cb_handler.on_time_change()
+                self.t0 = get_time()
 
     def detect_change(self, indiv:Individual)->None:
         try:
@@ -280,11 +284,13 @@ class Optimization:
     def run(self, generations:int, show_graph:bool=True, update_each:int=10, show_report:bool=True, silent:bool=False)->None:
         pbar = range(1) if silent else master_bar(range(1))
         try:
+            self.t0 = get_time()
             self.cb_handler.on_run_begin(generations, pbar, self.max_evals, self.max_times, self.frequency,
                                          show_graph=show_graph, update_each=update_each, show_report=show_report,
                                          silent=silent)
             for _ in pbar:
                 bar = range(generations) if silent else progress_bar(range(generations), parent=pbar)
+                # Here is the start of the optimization
                 for gen in bar: self.run_one_gen()
 
         except CancelRunException as exception: self.cb_handler.on_cancel_run(exception)

@@ -6,7 +6,7 @@ from .callbacks import *
 from .optimization import *
 from .metrics import NNTimer
 
-__all__ = ['ReplaceMechanism', 'NNTrainer', 'NNTrainerNoNoise', 'EvaluationCompensation']
+__all__ = ['ReplaceMechanism', 'NNTrainer', 'NNTrainerNoNoise']
 
 class ReplaceMechanism(IntEnum):
     '''Mechanism to replace individuals after a time change has been detected.

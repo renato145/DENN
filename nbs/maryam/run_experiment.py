@@ -77,7 +77,7 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
     fitness_func,constraint_func = get_functions(experiment_type, D, func_type)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     experiment_name = f'{method}'
-    total_generations = max_times * frequency + 1_000
+    total_generations = max_times * frequency * 100 + 1_000
     if is_nn:
         experiment_name += f'_{replace_mech}'
         replace_type = getattr(ReplaceMechanism, replace_mech)
@@ -112,7 +112,6 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
                 model = DropoutModel(d=D, w=nn_window, nf=nn_nf) 
                 nn_trainer = partial(NNTrainerNoNoise  , model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
                                      train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs)
-            callbacks.append(EvaluationCompensation)
             
             callbacks.append(nn_trainer)
         elif method_type==Method.noNNRestart:
