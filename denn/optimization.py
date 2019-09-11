@@ -224,8 +224,8 @@ class Optimization:
         if self.have_time:
             this_time = get_time() - self.t0
             if this_time >= self.frequency: # get_time()-t0==100
-                #print(f'\n Evals: {self.cb_handler.optim.state_dict["time_evals"]}\n')
-                #print(f'\n Time: {this_time}\n')
+                print(f'\n Evals: {self.cb_handler.optim.state_dict["time_evals"]}\n')
+                print(f'\n Time: {this_time}\n')
                 self.cb_handler.on_time_change()
                 self.t0 = get_time()
 

@@ -63,9 +63,9 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
             def constraint_func(indiv, b, t): return 0  
     return fitness_func,constraint_func
 
-def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1_000,
+def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1,
          max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, save:bool=True, pbar:bool=True,
-         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1_000, batch_size:int=4,nn_epochs:int=10):
+         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1, batch_size:int=4,nn_epochs:int=10):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
@@ -77,7 +77,7 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
     fitness_func,constraint_func = get_functions(experiment_type, D, func_type)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     experiment_name = f'{method}'
-    total_generations = max_times * frequency * 100 + 1_000
+    total_generations = int(max_times * frequency * 100 + 1_000)
     if is_nn:
         experiment_name += f'_{replace_mech}'
         replace_type = getattr(ReplaceMechanism, replace_mech)
