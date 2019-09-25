@@ -18,12 +18,21 @@ class ReplaceMechanism(IntEnum):
     Closest=2
     Worst=3
 
+class SamplingMethod(IntEnum):
+    '''Method to sample individuals to get training examples:
+    - All   : This will compute all possible combinatoins.
+    - Limit : This will compute a fixed number of combinations.
+    '''
+    All=1
+    Limit=2
+
 class NNTrainer(Callback):
     _order = 10 # Needs to run after restarting the population 
 
     def __init__(self, optim:'Optimization', model:nn.Module, replace_mechanism:ReplaceMechanism=ReplaceMechanism.Random, n:int=3, noise_range:float=0.5,
                  sample_size:int=1, window:int=5, min_batches:int=20, train_window:Optional[int]=None, bs:int=4, epochs:int=10,
-                 loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam):
+                 loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam,
+                 sampling_method:SamplingMethod=SamplingMethod.Limit, sampling_limit:int=32):
         '''Uses neural network to initialize individuals after a change is detected.
         Params:
           - optim: Optimization class.
@@ -39,10 +48,13 @@ class NNTrainer(Callback):
           - epochs: Number of epochs to train the neural network at each time change.
           - loss_func: Loss function.
           - nn_optim : Optimizer for the neural network.
+          - sampling_method: check `SamplingMethod`.
+          - sampling_limit: used in case `sampling_method` is `SamplingMethod.Limit`.
           '''
         super().__init__(optim)
         self.model,self.replace_mechanism,self.n,self.noise_range,self.sample_size,self.window,self.min_batches,self.train_window,self.bs,self.epochs,self.loss_func =\
              model,     replace_mechanism,     n,     noise_range,     sample_size,     window,     min_batches,     train_window,     bs,     epochs,     loss_func
+        self.sampling_method,self.sampling_limit = sampling_method,sampling_limit
         self.data,self.train_losses = [],[]
         self.nn_optim = nn_optim(model.parameters())
         self.d = optim.population.dimension
@@ -51,6 +63,7 @@ class NNTrainer(Callback):
         self.model.to(self.device)
         self.batch_per_time = self.sample_size**self.window
         self.data_x,self.data_y = [],[]
+        self.sample_cache = None # this will store all the combinations for sampling
         optim.callbacks.append(NNTimer)
         optim.metrics.append(NNTimer)
 
@@ -99,7 +112,18 @@ class NNTrainer(Callback):
         w = self.window
         data_x = []
         this_x = self.data[-(w+1):-1]
-        for idxs in product(range(self.sample_size), repeat=w):
+
+        if self.sample_cache is None: self.sample_cache = list(product(range(self.sample_size), repeat=w))
+
+        if self.sampling_method==SamplingMethod.All:
+            samples = self.sample_cache
+        elif self.sampling_method == SamplingMethod.Limit:
+            samples = self.sample_cache
+            if len(samples) > self.sampling_limit:
+                picked_idxs = np.random.choice(len(samples), size=self.sampling_limit, replace=False)
+                samples = [samples[i] for i in picked_idxs]
+
+        for idxs in samples:
             tx = torch.from_numpy(np.vstack([x[idx].data for idx,x in zip(idxs,this_x)])).float()
             data_x.append(tx)
 
