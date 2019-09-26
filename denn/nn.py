@@ -32,7 +32,7 @@ class NNTrainer(Callback):
     def __init__(self, optim:'Optimization', model:nn.Module, replace_mechanism:ReplaceMechanism=ReplaceMechanism.Random, n:int=3, noise_range:float=0.5,
                  sample_size:int=1, window:int=5, min_batches:int=20, train_window:Optional[int]=None, bs:int=4, epochs:int=10,
                  loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam,
-                 sampling_method:SamplingMethod=SamplingMethod.Limit, sampling_limit:int=32):
+                 sampling_method:SamplingMethod=SamplingMethod.Limit, sampling_limit:int=32, cuda:bool=False):
         '''Uses neural network to initialize individuals after a change is detected.
         Params:
           - optim: Optimization class.
@@ -59,7 +59,7 @@ class NNTrainer(Callback):
         self.nn_optim = nn_optim(model.parameters())
         self.d = optim.population.dimension
         self.n_individuals = optim.population.n
-        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        self.device = torch.device('cuda') if cuda else torch.device('cpu')
         self.model.to(self.device)
         self.batch_per_time = self.sample_size**self.window
         self.data_x,self.data_y = [],[]
