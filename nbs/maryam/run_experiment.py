@@ -9,15 +9,16 @@ Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
 Method = Enum('Methods', 'noNNRestart noNNReval NNnorm NNdrop')
 FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
 class DropoutModel(nn.Module):
-    def __init__(self, d, w, nf):
+    def __init__(self, d:int, w:int, nf:int, dropout:float=0.5):
         super().__init__()
         self.fc1 = nn.Linear(d,nf)
         self.fc2 = nn.Linear(nf*w,d)
         self.act = nn.ReLU(inplace=True)
+        self.dropout = dropout
         
     def forward(self, x):
         fts = torch.cat([self.fc1(x[:,i]) for i in range(x.size(1))], dim=1)
-        return self.fc2(F.dropout(self.act(fts), p=0.5))
+        return self.fc2(F.dropout(self.act(fts), p=self.dropout))
 
 class SimpleModel(nn.Module):
     def __init__(self, d, w, nf):
@@ -65,7 +66,7 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1,
          max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, save:bool=True, pbar:bool=True,
-         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1, batch_size:int=4,nn_epochs:int=10):
+         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1, batch_size:int=4,nn_epochs:int=10, dropout:float=0.5):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
@@ -109,7 +110,7 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
                 nn_trainer = partial(NNTrainer, model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
                                      train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs)
             if method_type==Method.NNdrop:
-                model = DropoutModel(d=D, w=nn_window, nf=nn_nf) 
+                model = DropoutModel(d=D, w=nn_window, nf=nn_nf, dropout=dropout) 
                 nn_trainer = partial(NNTrainerNoNoise  , model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
                                      train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs)
             
