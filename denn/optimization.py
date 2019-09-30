@@ -139,8 +139,10 @@ class Optimization:
     metrics:Optional[Collection[Metric]]=None
     optimal_fitness_values:Optional[Collection[float]]=None
     optimal_sum_constraints:Optional[Collection[float]]=None
+    evolve_with_best:bool=False
 
     def __post_init__(self):
+        self._evolve_func = self._evolve_with_best if self.evolve_with_best else self._evolve
         self.get_constraints = listify(self.get_constraints)
         self.have_constraints = len(self.get_constraints)>0
         if self.have_constraints:
@@ -191,6 +193,7 @@ class Optimization:
         return indiv.constraints_sum == 0
 
     def _evolve(self, indiv:Individual)->None:
+        'This is the normal evolution mechanism.'
         dims = indiv.dimensions
         jrand = np.random.randint(dims)
         crs = np.argwhere(np.random.rand(dims) < self.CR)[:,0].tolist()
@@ -203,10 +206,24 @@ class Optimization:
             indiv.data[picked_dims] = new_data
             indiv.clip_limits()
 
+    def _evolve_with_best(self, indiv:Individual)->None:
+        'This is the evolution mechanism considering always the best.'
+        dims = indiv.dimensions
+        jrand = np.random.randint(dims)
+        crs = np.argwhere(np.random.rand(dims) < self.CR)[:,0].tolist()
+        picked_dims = get_unique(crs + [jrand])
+
+        if len(picked_dims) > 0:
+            picked = [self.population[i].data[picked_dims] for i in pick_n_but(2, indiv.idx, len(self.population))]
+            F = np.random.uniform(self.beta_min, self.beta_max, size=len(picked_dims))
+            new_data = self.best.data[picked_dims] + F*(picked[0] - picked[1])
+            indiv.data[picked_dims] = new_data
+            indiv.clip_limits()
+
     def evolve(self, indiv:Individual)->None:
         try:
             self.cb_handler.on_evolve_begin()
-            self._evolve(indiv)
+            self._evolve_func(indiv)
         except CancelEvolveException as exception: self.cb_handler.on_cancel_evolve(exception)
         finally: self.cb_handler.on_evolve_end()
 

@@ -66,7 +66,7 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1,
          max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, save:bool=True, pbar:bool=True,
-         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1, batch_size:int=4,nn_epochs:int=10, dropout:float=0.5):
+         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1, batch_size:int=4,nn_epochs:int=10, dropout:float=0.5, evolve_with_best:bool=False):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
@@ -123,7 +123,7 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
         opt = Optimization(population, fitness_func, constraint_func, fitness_params=ab, constraint_params=[ab],
                            max_times=max_times, frequency=frequency, callbacks=callbacks,
                            metrics=[speed_metric, ModifiedOfflineError, OfflineError, AbsoluteRecoverRate],
-                           optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv)
+                           optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv, evolve_with_best=evolve_with_best)
         opt.run(total_generations, show_graph=False, show_report=False, silent=silent)
 
         # Store results
