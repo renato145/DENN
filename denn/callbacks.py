@@ -364,9 +364,9 @@ class SaveBestIndividuals(Callback):
     def on_time_change(self, best:'Individual', **kwargs:Any)->None:
         self.bests.append(best.data.copy())
 
-    def on_run_end(self, kwargs:Any)->None:
-        import pdb; pdb.set_trace()
-        pass
+    def on_run_end(self, **kwargs:Any)->None:
+        bests = np.stack(self.bests)
+        np.save(self.out_path, bests)
 
 class CancelDetectChangeException(Exception): pass
 class CancelEvolveException(Exception): pass
