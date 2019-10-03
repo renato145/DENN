@@ -1,7 +1,7 @@
 from .imports import *
 from .utils import *
 
-__all__ = ['Callback', 'CallbackHandler', 'Recorder', 'OnChangeRestartPopulation',
+__all__ = ['Callback', 'CallbackHandler', 'Recorder', 'OnChangeRestartPopulation', 'SaveBestIndividuals',
            'CancelDetectChangeException', 'CancelEvolveException', 'CancelFitnessException', 'CancelEachConstraintException',
            'CancelConstraintsException', 'CancelGenException', 'CancelRunException']
 
@@ -355,6 +355,18 @@ class Recorder(Callback):
         ax.set_title(title)
         ax.legend()
         return ax
+
+class SaveBestIndividuals(Callback):
+    def __init__(self, optim:'Optimization', out_path:str):
+        super().__init__(optim)
+        self.bests,self.out_path = [],out_path
+
+    def on_time_change(self, best:'Individual', **kwargs:Any)->None:
+        self.bests.append(best.data.copy())
+
+    def on_run_end(self, **kwargs:Any)->None:
+        bests = np.stack(self.bests)
+        np.save(self.out_path, bests)
 
 class CancelDetectChangeException(Exception): pass
 class CancelEvolveException(Exception): pass
