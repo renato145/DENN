@@ -78,7 +78,7 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
     fitness_func,constraint_func = get_functions(experiment_type, D, func_type)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     experiment_name = f'{method}'
-    total_generations = int(max_times * frequency * 100 + 1_000)
+    total_generations = int(max_times * frequency * 1000 + 1_000)
     if is_nn:
         experiment_name += f'_{replace_mech}'
         replace_type = getattr(ReplaceMechanism, replace_mech)
