@@ -81,6 +81,8 @@ class Population:
     def new_random(cls, n:int=20, dimension:int=10, lower_limit:float=-5, upper_limit:float=5)->Collection[Individual]:
         res = cls(n, dimension)
         res.new_individual = partial(Individual.new_random, dimension, lower_limit, upper_limit)
+        res.lower_limit = lower_limit
+        res.upper_limit = upper_limit
         res.individuals = [res.new_individual().assign_idx(i) for i in range(n)]
         return res
 
@@ -241,8 +243,8 @@ class Optimization:
         if self.have_time:
             this_time = get_time() - self.t0
             if this_time >= self.frequency: # get_time()-t0==100
-                #print(f'\n Evals: {self.cb_handler.optim.state_dict["time_evals"]}\n')
-                #print(f'\n Time: {this_time}\n')
+                print(f'\n Evals: {self.cb_handler.optim.state_dict["time_evals"]}\n')
+                print(f'\n Time: {this_time}\n')
                 self.cb_handler.on_time_change()
                 self.t0 = get_time()
 

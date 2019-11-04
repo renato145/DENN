@@ -64,6 +64,7 @@ class NNTrainer(Callback):
         self.batch_per_time = self.sample_size**self.window
         self.data_x,self.data_y = [],[]
         self.sample_cache = None # this will store all the combinations for sampling
+        self.lims = self.optim.population.lower_limit,self.optim.population.upper_limit
         optim.callbacks.append(NNTimer)
         optim.metrics.append(NNTimer)
 
@@ -85,6 +86,7 @@ class NNTrainer(Callback):
         return idxs
 
     def modify_population(self, preds:np.ndarray)->Collection[int]:
+        preds = preds.clip(*self.lims)
         if   self.replace_mechanism==ReplaceMechanism.Random : idxs = self._replace_random (preds)
         elif self.replace_mechanism==ReplaceMechanism.Closest: idxs = self._replace_closest(preds)
         elif self.replace_mechanism==ReplaceMechanism.Worst  : idxs = self._replace_worst  (preds)
