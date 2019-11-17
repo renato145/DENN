@@ -364,33 +364,45 @@
 
 
 
-#repeat sphere for all frequencies, only for exp3
-#freq=1
-sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Random",D=30,runs=30,frequency=1,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=1,batch_size=4,nn_epochs=3 cluster_job.sh
+# #repeat sphere for all frequencies, only for exp3
+# #freq=1
+# sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Random",D=30,runs=30,frequency=1,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=1,batch_size=4,nn_epochs=3 cluster_job.sh
 
 
-# #freq=4
-sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Random",D=30,runs=30,frequency=4,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=4,batch_size=4,nn_epochs=3 cluster_job.sh
+# # #freq=4
+# sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Random",D=30,runs=30,frequency=4,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=4,batch_size=4,nn_epochs=3 cluster_job.sh
 
 
-# #freq=0.5
+# # #freq=0.5
 
-sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Random",D=30,runs=30,frequency=0.5,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=0.5,batch_size=4,nn_epochs=3 cluster_job.sh
+# sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Random",D=30,runs=30,frequency=0.5,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=0.5,batch_size=4,nn_epochs=3 cluster_job.sh
 
 
-# #Worst
+# # #Worst
+
+# # #freq=1
+# sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Worst",D=30,runs=30,frequency=1,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=1,batch_size=4,nn_epochs=3 cluster_job.sh
+
+
+
+# # #freq=4
+
+# sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Worst",D=30,runs=30,frequency=4,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=4,batch_size=4,nn_epochs=3 cluster_job.sh
+
+
+# # #freq=0.5
+
+# sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Worst",D=30,runs=30,frequency=0.5,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=0.5,batch_size=4,nn_epochs=3 cluster_job.sh
+
+#noNN
 
 # #freq=1
-sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Worst",D=30,runs=30,frequency=1,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=1,batch_size=4,nn_epochs=3 cluster_job.sh
-
-
+sbatch --export=ALL,experiment="exp3",func_name="sphere",method="noNNReval",replace_mech="Worst",D=30,runs=30,frequency=1,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=1,batch_size=4,nn_epochs=3 cluster_job.sh
 
 # #freq=4
 
-sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Worst",D=30,runs=30,frequency=4,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=4,batch_size=4,nn_epochs=3 cluster_job.sh
-
+sbatch --export=ALL,experiment="exp3",func_name="sphere",method="noNNReval",replace_mech="Worst",D=30,runs=30,frequency=4,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=4,batch_size=4,nn_epochs=3 cluster_job.sh
 
 # #freq=0.5
 
-sbatch --export=ALL,experiment="exp3",func_name="sphere",method="NNnorm",replace_mech="Worst",D=30,runs=30,frequency=0.5,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=0.5,batch_size=4,nn_epochs=3 cluster_job.sh
-
+sbatch --export=ALL,experiment="exp3",func_name="sphere",method="noNNReval",replace_mech="Worst",D=30,runs=30,frequency=0.5,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,save="True",pbar="False",silent="False",cluster="True",nn_train_window=5,freqSave=0.5,batch_size=4,nn_epochs=3 cluster_job.sh
