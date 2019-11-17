@@ -105,20 +105,23 @@ class AbsoluteRecoverRate(Metric):
             if best.is_feasible and (best.time==time):
                 self.this_time_first_best = best.fitness_value
                 diff = abs(self.this_time_first_best - self.optimal_fitness(time))
-                if (self.n_time_gen==1) and (diff < 1e-4):
-                    self.best_case = True
+                # TODO:
+                # consider the case when n_time_gen is > 1 and diff is close to 0:
+                # if diff < 1e-4:
+                #     if self.n_time_gen == 1: self.best_case = True
+                #     else : ???
+                # For now we ignore the condition in the following line:
+                if diff < 1e-4: self.best_case = True
         else:
             if best.is_feasible:
                 self.acummulated_sum += abs(best.fitness_value - self.this_time_first_best)
 
     def on_time_change(self, time:int, **kwargs:Any)->None:
-        if self.this_time_first_best is None: self.time_values.append(0.0)
-        else:
-            if self.best_case:
-                self.time_values.append(1.0)
-            else:
-                val = self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best))
-                self.time_values.append(val)
+        if self.this_time_first_best is None: val = 0.0
+        elif self.best_case: val = 1.0
+        else: val = self.acummulated_sum / (self.n_time_gen * abs(self.optimal_fitness(time) - self.this_time_first_best))
+
+        self.time_values.append(val)
         self.this_time_first_best = None
         self.acummulated_sum = 0.0
         self.n_time_gen = 0.0
