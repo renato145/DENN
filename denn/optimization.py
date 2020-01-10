@@ -79,6 +79,9 @@ class Population:
     def __len__(self)->int: return len(self.individuals)
     def __iter__(self): return iter(self.individuals)
 
+    @property
+    def fitness_values(self)->Collection[float]: return [o.fitness_value for o in self]
+
     @classmethod
     def new_random(cls, n:int=20, dimension:int=10, lower_limit:float=-5, upper_limit:float=5)->Collection[Individual]:
         res = cls(n, dimension)
@@ -229,10 +232,31 @@ class Optimization:
             indiv.clip_limits()
 
     def _evolve_crowding(self, indiv:Individual)->None:
-        pass
+        '''
+        https://ieeexplore.ieee.org/abstract/document/735432/
+        On evolution offspring competes with closest individual instead of parent.
+        '''
+        dims = indiv.dimensions
+        jrand = np.random.randint(dims)
+        crs = np.argwhere(np.random.rand(dims) < self.CR)[:,0].tolist()
+        picked_dims = get_unique(crs + [jrand])
+
+        if len(picked_dims) > 0:
+            picked = [self.population[i].data[picked_dims] for i in pick_n_but(3, indiv.idx, len(self.population))]
+            F = np.random.uniform(self.beta_min, self.beta_max, size=len(picked_dims))
+            new_data = picked[0] + F*(picked[1] - picked[2])
+            offspring = indiv.clone()
+            offspring.data[picked_dims] = new_data
+            offspring.clip_limits()
+            closest_individual = self.population[self.population.get_closest(offspring.data)[0][0]]
+            closest_individual.copy_from(offspring)
 
     def _evolve_fitness_diversity(self, indiv:Individual)->None:
-        pass
+        '''
+        http://www.vetta.org/documents/FitnessUniformOptimization.pdf
+        On evolution offspring competes with closest individual (in term of fitness values) instead of parent.
+        '''
+        raise NotImplementedError
 
     def evolve(self, indiv:Individual)->None:
         try:
