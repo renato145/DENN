@@ -1,7 +1,7 @@
 from .imports import *
 from .utils import *
 
-__all__ = ['Callback', 'CallbackHandler', 'Recorder', 'OnChangeRestartPopulation', 'SaveBestIndividuals',
+__all__ = ['Callback', 'CallbackHandler', 'Recorder', 'SaveBestIndividuals',
            'CancelDetectChangeException', 'CancelEvolveException', 'CancelFitnessException', 'CancelEachConstraintException',
            'CancelConstraintsException', 'CancelGenException', 'CancelRunException']
 
@@ -119,7 +119,7 @@ class CallbackHandler():
             self.state_dict['change_detected'] = indiv != indiv_bkup
             
             if self.state_dict['change_detected']:
-                self('detect_change_end_before_reval')
+                self('detect_change_end_before_reval') # Eg: restart population
                 # Change detected
                 population = self.optim.population
                 # 2) Revaluate population
@@ -153,7 +153,7 @@ class CallbackHandler():
                 self.state_dict['last_indiv'] = indiv
                 self.state_dict['indiv_bkup'] = indiv.clone()
                 
-                # Is the best known in the population?
+                # 5) Is the best known in the population?
                 if not any(self.state_dict['best']==ind for ind in population):
                     population.get_worse().copy_from(self.state_dict['best'])
 
@@ -266,10 +266,6 @@ class CallbackHandler():
     def on_cancel_run(self, exception:Exception, **kwargs:Any)->None:
         if not self.silent: print(f'Run cancelled: {exception}')
         self('cancel_run')
-
-class OnChangeRestartPopulation(Callback):
-    def on_detect_change_end_before_reval(self, change_detected:bool, **kwargs:Any)->None:
-        if change_detected: self.optim.population.refresh()
 
 class Recorder(Callback):
     _order = 99 # Needs to run at the end

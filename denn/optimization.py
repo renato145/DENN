@@ -5,6 +5,8 @@ from .utils import *
 
 __all__ = ['Individual', 'Population', 'Optimization', 'Runs']
 
+EvolveMechanism = Enum('EvolveMechanism', 'Normal Best Crowding FitnessDiversity')
+
 @dataclass
 class Individual:
     dimensions:int
@@ -141,10 +143,14 @@ class Optimization:
     metrics:Optional[Collection[Metric]]=None
     optimal_fitness_values:Optional[Collection[float]]=None
     optimal_sum_constraints:Optional[Collection[float]]=None
-    evolve_with_best:bool=False
+    evolve_mechanism:EvolveMechanism=EvolveMechanism.Normal
 
     def __post_init__(self):
-        self._evolve_func = self._evolve_with_best if self.evolve_with_best else self._evolve
+        if   self.evolve_mechanism == EvolveMechanism.Normal          : self._evolve_func = self._evolve
+        elif self.evolve_mechanism == EvolveMechanism.Best            : self._evolve_func = self._evolve_with_best
+        elif self.evolve_mechanism == EvolveMechanism.Crowding        : self._evolve_func = self._evolve_crowding
+        elif self.evolve_mechanism == EvolveMechanism.FitnessDiversity: self._evolve_func = self._evolve_fitness_diversity
+        else: raise Exception(f'Invalid evolve mechanism: {self.evolve_mechanism}')
         self.get_constraints = listify(self.get_constraints)
         self.have_constraints = len(self.get_constraints)>0
         if self.have_constraints:
@@ -221,6 +227,12 @@ class Optimization:
             new_data = self.best.data[picked_dims] + F*(picked[0] - picked[1])
             indiv.data[picked_dims] = new_data
             indiv.clip_limits()
+
+    def _evolve_crowding(self, indiv:Individual)->None:
+        pass
+
+    def _evolve_fitness_diversity(self, indiv:Individual)->None:
+        pass
 
     def evolve(self, indiv:Individual)->None:
         try:
