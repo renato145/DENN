@@ -11,6 +11,6 @@
 #SBATCH --mail-user=maryam.hasanishoreh@adelaide.edu.au # Email to which notification will be sent                                                                               
 
 # Executing script (Example here is sequential script)
-python run_experiment.py $experiment $func_name $method $replace_mech $D $runs $frequency $max_times $nn_window $nn_nf $nn_pick $nn_sample_size $save $pbar $silent $cluster $nn_train_window $freqSave $batch_size $nn_epochs
-# sbatch --export=ALL,experiment="exp1",func_name="sphere",method="noNNReval",replace_mech="Random",D=30,runs=30,frequency=1000,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=1,save="True",pbar="False",silent="False",cluster="True",nn_train_window=None,freqSave=500,batch_size=4,nn_epochs=10 cluster_job.sh
+python run_experiment.py $experiment $func_name $method $replace_mech $D $runs $frequency $max_times $nn_window $nn_nf $nn_pick $nn_sample_size $save $pbar $silent $cluster $nn_train_window $freqSave $batch_size $nn_epochs $diversity_method
+# sbatch --export=ALL,experiment="exp1",func_name="sphere",method="noNNReval",replace_mech="Random",D=30,runs=30,frequency=1000,max_times=100,nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=1,save="True",pbar="False",silent="False",cluster="True",nn_train_window=None,freqSave=500,batch_size=4,nn_epochs=10,diversity_method=None cluster_job.sh
 
