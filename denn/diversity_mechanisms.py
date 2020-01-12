@@ -1,4 +1,5 @@
 from .imports import *
+from .optimization import *
 from .utils import *
 from .callbacks import *
 
@@ -10,13 +11,14 @@ class OnChangeRestartPopulation(Callback):
 
 class RandomImmigrants(Callback):
     'http://www.gardeux-vincent.eu/These/Papiers/Bibli1/Grefenstette92.pdf'
-    def __init__(self, replacement_rate:int=3):
+    def __init__(self, optim:'Optimization', replacement_rate:int=3):
+        super().__init__(optim)
         self.replacement_rate = replacement_rate
 
     def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->dict:
         idxs = []
         if change_detected:
             picked_idxs = np.random.choice(self.optim.population.n, self.replacement_rate, replace=False)
-            for idx in picked_idxs: self.population[idx].refresh()
+            for idx in picked_idxs: self.optim.population[idx].refresh()
 
         return {'detected_idxs':picked_idxs}

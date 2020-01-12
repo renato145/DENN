@@ -3,7 +3,7 @@ from .metrics import *
 from .callbacks import *
 from .utils import *
 
-__all__ = ['Individual', 'Population', 'Optimization', 'Runs']
+__all__ = ['EvolveMechanism', 'Individual', 'Population', 'Optimization', 'Runs']
 
 EvolveMechanism = Enum('EvolveMechanism', 'Normal Best Crowding FitnessDiversity')
 
@@ -203,7 +203,7 @@ class Optimization:
     def eval_feasibility(self, indiv:Individual)->bool:
         return indiv.constraints_sum == 0
 
-    def _evolve(self, indiv:Individual)->None:
+    def _evolve(self, indiv:Individual)->Individual:
         'This is the normal evolution mechanism.'
         dims = indiv.dimensions
         jrand = np.random.randint(dims)
@@ -217,7 +217,9 @@ class Optimization:
             indiv.data[picked_dims] = new_data
             indiv.clip_limits()
 
-    def _evolve_with_best(self, indiv:Individual)->None:
+        return indiv
+
+    def _evolve_with_best(self, indiv:Individual)->Individual:
         'This is the evolution mechanism considering always the best.'
         dims = indiv.dimensions
         jrand = np.random.randint(dims)
@@ -231,7 +233,9 @@ class Optimization:
             indiv.data[picked_dims] = new_data
             indiv.clip_limits()
 
-    def _evolve_crowding(self, indiv:Individual)->None:
+        return indiv
+
+    def _evolve_crowding(self, indiv:Individual)->Individual:
         '''
         https://ieeexplore.ieee.org/abstract/document/735432/
         On evolution offspring competes with closest individual instead of parent.
@@ -248,22 +252,32 @@ class Optimization:
             offspring = indiv.clone()
             offspring.data[picked_dims] = new_data
             offspring.clip_limits()
+            # Find closest individual
             closest_individual = self.population[self.population.get_closest(offspring.data)[0][0]]
-            closest_individual.copy_from(offspring)
+            # Store backup of closest before modifying
+            self.cb_handler.state_dict['indiv_bkup'] = closest_individual.clone()
+            # Modifying the closest one
+            closest_individual.data = offspring.data
+            # Update the last indiv
+            self.cb_handler.state_dict['last_indiv'] = closest_individual
 
-    def _evolve_fitness_diversity(self, indiv:Individual)->None:
+        return closest_individual
+
+    def _evolve_fitness_diversity(self, indiv:Individual)->Individual:
         '''
         http://www.vetta.org/documents/FitnessUniformOptimization.pdf
         On evolution offspring competes with closest individual (in term of fitness values) instead of parent.
         '''
         raise NotImplementedError
 
-    def evolve(self, indiv:Individual)->None:
+    def evolve(self, indiv:Individual)->Individual:
         try:
             self.cb_handler.on_evolve_begin()
-            self._evolve_func(indiv)
+            indiv = self._evolve_func(indiv)
         except CancelEvolveException as exception: self.cb_handler.on_cancel_evolve(exception)
-        finally: self.cb_handler.on_evolve_end()
+        finally:
+            self.cb_handler.on_evolve_end()
+            return indiv
 
     def eval_fitness(self, indiv:Individual)->None:
         fitness = None
@@ -316,7 +330,7 @@ class Optimization:
         try:
             self.cb_handler.on_individual_begin(indiv=indiv)
             if self.time_change_detect and self.have_time and (indiv.idx in self.time_change_checks): self.detect_change(indiv)
-            self.evolve(indiv)
+            indiv = self.evolve(indiv)
             self.eval_fitness(indiv)
             if self.have_constraints: self.eval_constraints(indiv)
 

@@ -8,6 +8,8 @@ from torch import nn
 Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
 Method = Enum('Methods', 'noNNRestart noNNReval NNnorm NNdrop')
 FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
+DiversityMethod = Enum('DiversityMethod', 'RI Cw')
+
 class DropoutModel(nn.Module):
     def __init__(self, d:int, w:int, nf:int, dropout:float=0.5):
         super().__init__()
@@ -66,14 +68,20 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
 
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1,
          max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, save:bool=True, pbar:bool=True,
-         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1, batch_size:int=4,nn_epochs:int=10, dropout:float=0.5, evolve_with_best:bool=False):
+         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1, batch_size:int=4,nn_epochs:int=10,
+         dropout:float=0.5, diversity_method:Optional[str]=None):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
     func_type = getattr(FuncName, func_name)
     path = Path(f'../../data/results/{experiment}/{func_name}')
     if cluster: path = Path(f'DENN/data/cluster_results/{experiment}/{func_name}') # this is for the cluster
-    out_path = path / f'freq{freq_save}nn_w{nn_window}nn_p{nn_pick}nn_s{nn_sample_size}nn_tw{nn_train_window}nn_bs{batch_size}nn_epoch{nn_epochs}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
+    name = f'freq{freq_save}nn_w{nn_window}nn_p{nn_pick}nn_s{nn_sample_size}nn_tw{nn_train_window}nn_bs{batch_size}nn_epoch{nn_epochs}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
+    if diversity_method is not None:
+        name += f'diversity{diversity_method}'
+       diversity_method = DiversityMethod[diversity_method] 
+
+    out_path = path / name
     out_path.mkdir(parents=True, exist_ok=True)
     fitness_func,constraint_func = get_functions(experiment_type, D, func_type)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
@@ -117,13 +125,24 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
             callbacks.append(nn_trainer)
         elif method_type==Method.noNNRestart:
             callbacks.append(OnChangeRestartPopulation)
+
+        # Setting diversity method
+        if diversity_method is None:
+            evolve_mechanism = EvolveMechanism.Normal
+        elif diversity_method == DiversityMethod.RI:
+            evolve_mechanism = EvolveMechanism.Normal
+            callbacks.append(RandomImmigrants)
+        elif diversity_method == DiversityMethod.Cw:
+            evolve_mechanism = EvolveMechanism.Crowding
+        else: raise Exception(f'Invalid diversity method: {diversity_method}.')
+
         #first pop created here and passed to optimization
         population = Population.new_random(dimension=D)
         speed_metric = partial(SpeedMetric, threadhold=0.1)
         opt = Optimization(population, fitness_func, constraint_func, fitness_params=ab, constraint_params=[ab],
                            max_times=max_times, frequency=frequency, callbacks=callbacks,
                            metrics=[speed_metric, ModifiedOfflineError, OfflineError, AbsoluteRecoverRate],
-                           optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv, evolve_with_best=evolve_with_best)
+                           optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv, evolve_mechanism=evolve_mechanism)
         opt.run(total_generations, show_graph=False, show_report=False, silent=silent)
 
         # Store results
