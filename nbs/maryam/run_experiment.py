@@ -79,7 +79,7 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
     name = f'freq{freq_save}nn_w{nn_window}nn_p{nn_pick}nn_s{nn_sample_size}nn_tw{nn_train_window}nn_bs{batch_size}nn_epoch{nn_epochs}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
     if diversity_method is not None:
         name += f'diversity{diversity_method}'
-       diversity_method = DiversityMethod[diversity_method] 
+        diversity_method = DiversityMethod[diversity_method] 
 
     out_path = path / name
     out_path.mkdir(parents=True, exist_ok=True)
