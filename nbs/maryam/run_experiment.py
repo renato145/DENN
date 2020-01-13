@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import nn
 
 Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
-Method = Enum('Methods', 'noNNRestart noNNReval NNnorm NNdrop')
+Method = Enum('Method', 'noNNRestart noNN NNnorm NNdrop')
 FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
 DiversityMethod = Enum('DiversityMethod', 'RI Cw')
 
@@ -69,7 +69,7 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
 def main(experiment:str, func_name:str, method:str, frequency:int=1, freq_save:int=1, diversity_method:Optional[str]=None,
 save:bool=True, pbar:bool=True, silent:bool=True,  cluster:bool=False, replace_mech:Optional[str]=None, nn_window:int=5,
 nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, nn_epochs:int=10, nn_train_window:Optional[int]=None, batch_size:int=4,
-D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5 ):
+D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
@@ -107,8 +107,8 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5 ):
         best_known_fitness = df['fitness'].values
         best_known_sumcv   = df['sum_constraints'].values
     else:
-        ab = pd.read_csv(path/'dC_01.csv')['b'].values
-        df = pd.read_csv(path/'best_known.csv')
+        ab = pd.read_csv(path.parent/'dC_01.csv')['b'].values
+        df = pd.read_csv(path.parent/'best_known.csv')
         best_known_fitness = df['fitness'].values
         best_known_sumcv   = df['sum_constraints'].values
 
