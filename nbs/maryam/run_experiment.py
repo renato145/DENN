@@ -73,18 +73,26 @@ def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=N
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
+    is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     func_type = getattr(FuncName, func_name)
     path = Path(f'../../data/results/{experiment}/{func_name}')
     if cluster: path = Path(f'DENN/data/cluster_results/{experiment}/{func_name}') # this is for the cluster
-    name = f'freq{freq_save}nn_w{nn_window}nn_p{nn_pick}nn_s{nn_sample_size}nn_tw{nn_train_window}nn_bs{batch_size}nn_epoch{nn_epochs}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
+    if is_nn:
+        path = path / 'nn'
+        name = f'freq{freq_save}nn_w{nn_window}nn_p{nn_pick}nn_s{nn_sample_size}nn_tw{nn_train_window}nn_bs{batch_size}nn_epoch{nn_epochs}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
+    else:
+        path = path / 'nonn'
+        name = ''
+
     if diversity_method is not None:
-        name += f'diversity{diversity_method}'
+        name += f'div{diversity_method}'
         diversity_method = DiversityMethod[diversity_method] 
+    else:
+        name += 'divNo'
 
     out_path = path / name
     out_path.mkdir(parents=True, exist_ok=True)
     fitness_func,constraint_func = get_functions(experiment_type, D, func_type)
-    is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     experiment_name = f'{method}'
     total_generations = int(max_times * frequency * 1_000_000 + 1_000)
     if is_nn:
