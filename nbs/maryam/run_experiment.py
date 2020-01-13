@@ -69,7 +69,7 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
 def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1,
          max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, save:bool=True, pbar:bool=True,
          silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1, batch_size:int=4,nn_epochs:int=10,
-         dropout:float=0.5, diversity_method:Optional[str]=None):
+         diversity_method:Optional[str]=None, dropout:float=0.5):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
