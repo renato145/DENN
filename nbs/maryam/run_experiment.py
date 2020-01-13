@@ -82,7 +82,7 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
         name = f'freq{freq_save}nn_w{nn_window}nn_p{nn_pick}nn_s{nn_sample_size}nn_tw{nn_train_window}nn_bs{batch_size}nn_epoch{nn_epochs}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
     else:
         path = path / 'nonn'
-        name = ''
+        name = f'freq{freq_save}'
 
     if diversity_method is not None:
         name += f'div{diversity_method}'
