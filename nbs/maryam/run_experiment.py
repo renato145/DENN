@@ -66,10 +66,10 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
             def constraint_func(indiv, b, t): return 0  
     return fitness_func,constraint_func
 
-def main(experiment:str, func_name:str, method:str, replace_mech:Optional[str]=None, D:int=30, runs:int=30, frequency:int=1,
-         max_times:int=100, nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, save:bool=True, pbar:bool=True,
-         silent:bool=True, cluster:bool=False, nn_train_window:Optional[int]=None, freq_save:int=1, batch_size:int=4,nn_epochs:int=10,
-         diversity_method:Optional[str]=None, dropout:float=0.5):
+def main(experiment:str, func_name:str, method:str, frequency:int=1, freq_save:int=1, diversity_method:Optional[str]=None,
+save:bool=True, pbar:bool=True, silent:bool=True,  cluster:bool=False, replace_mech:Optional[str]=None, nn_window:int=5,
+nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, nn_epochs:int=10, nn_train_window:Optional[int]=None, batch_size:int=4,
+D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5 ):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
