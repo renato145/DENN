@@ -6,7 +6,8 @@ from scipy.spatial.distance import cosine
 
 __all__ = ['EvolveMechanism', 'DistanceMetric', 'Individual', 'Population', 'Optimization', 'Runs']
 
-EvolveMechanism = Enum('EvolveMechanism', 'Normal Best Crowding CrowdingCosine FitnessDiversity')
+EvolveMechanism = Enum('EvolveMechanism', 'Normal Best Crowding CrowdingN CrowdingCosine CrowdingCosineN FitnessDiversity')
+
 DistanceMetric = Enum('DistanceMetric', 'Euclidean Cosine')
 
 @dataclass
@@ -160,6 +161,7 @@ class Optimization:
     optimal_fitness_values:Optional[Collection[float]]=None
     optimal_sum_constraints:Optional[Collection[float]]=None
     evolve_mechanism:EvolveMechanism=EvolveMechanism.Normal
+    crowding_n_pick:int=5
 
     def __post_init__(self):
         # Set evolve mechanism
@@ -170,8 +172,14 @@ class Optimization:
         elif self.evolve_mechanism == EvolveMechanism.Crowding:
             self._evolve_func = self._evolve_crowding
             self._crowding_distance = DistanceMetric.Euclidean
+        elif self.evolve_mechanism == EvolveMechanism.CrowdingN:
+            self._evolve_func = self._evolve_crowding_n
+            self._crowding_distance = DistanceMetric.Euclidean
         elif self.evolve_mechanism == EvolveMechanism.CrowdingCosine:
             self._evolve_func = self._evolve_crowding
+            self._crowding_distance = DistanceMetric.Cosine
+        elif self.evolve_mechanism == EvolveMechanism.CrowdingCosineN:
+            self._evolve_func = self._evolve_crowding_n
             self._crowding_distance = DistanceMetric.Cosine
         elif self.evolve_mechanism == EvolveMechanism.FitnessDiversity:
             self._evolve_func = self._evolve_fitness_diversity
@@ -288,6 +296,36 @@ class Optimization:
 
         return closest_individual
 
+    def _evolve_crowding_n(self, indiv:Individual)->Individual:
+        '''
+        Variation on regular crowding, where we pick the `n` closest individuals and
+        pick the worst of them to replace.
+        '''
+        dims = indiv.dimensions
+        jrand = np.random.randint(dims)
+        crs = np.argwhere(np.random.rand(dims) < self.CR)[:,0].tolist()
+        picked_dims = get_unique(crs + [jrand])
+
+        if len(picked_dims) > 0:
+            picked = [self.population[i].data[picked_dims] for i in pick_n_but(3, indiv.idx, len(self.population))]
+            F = np.random.uniform(self.beta_min, self.beta_max, size=len(picked_dims))
+            new_data = picked[0] + F*(picked[1] - picked[2])
+            offspring = indiv.clone()
+            offspring.data[picked_dims] = new_data
+            offspring.clip_limits()
+            # Find closest individual
+            closest_idxs = self.population.get_closest(offspring.data, metric=self._crowding_distance)[0][:self.crowding_n_pick]
+            closest_idx = [o.idx for o in self.population.get_n_best() if o.idx in closest_idxs][0]
+            closest_individual = self.population[closest_idx]
+            # Store backup of closest before modifying
+            self.cb_handler.state_dict['indiv_bkup'] = closest_individual.clone()
+            # Modifying the closest one
+            closest_individual.data = offspring.data
+            # Update the last indiv
+            self.cb_handler.state_dict['last_indiv'] = closest_individual
+
+        return closest_individual
+
     def _evolve_fitness_diversity(self, indiv:Individual)->Individual:
         '''
         http://www.vetta.org/documents/FitnessUniformOptimization.pdf
@@ -298,11 +336,11 @@ class Optimization:
     def evolve(self, indiv:Individual)->Individual:
         try:
             self.cb_handler.on_evolve_begin()
-            indiv = self._evolve_func(indiv)
+            evolved = self._evolve_func(indiv)
         except CancelEvolveException as exception: self.cb_handler.on_cancel_evolve(exception)
         finally:
             self.cb_handler.on_evolve_end()
-            return indiv
+            return evolved
 
     def eval_fitness(self, indiv:Individual)->None:
         fitness = None
