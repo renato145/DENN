@@ -2,10 +2,12 @@ from .imports import *
 from .metrics import *
 from .callbacks import *
 from .utils import *
+from scipy.spatial.distance import cosine
 
-__all__ = ['EvolveMechanism', 'Individual', 'Population', 'Optimization', 'Runs']
+__all__ = ['EvolveMechanism', 'DistanceMetric', 'Individual', 'Population', 'Optimization', 'Runs']
 
-EvolveMechanism = Enum('EvolveMechanism', 'Normal Best Crowding FitnessDiversity')
+EvolveMechanism = Enum('EvolveMechanism', 'Normal Best Crowding CrowdingCosine FitnessDiversity')
+DistanceMetric = Enum('DistanceMetric', 'Euclidean Cosine')
 
 @dataclass
 class Individual:
@@ -92,7 +94,11 @@ class Population:
         return res
 
     def refresh(self)->None:
+        'Restart information of all individuals.'
         for indiv in self.individuals: indiv.refresh()
+
+    def get_random(self)->Individual:
+        return np.random.choice(self)
 
     def get_worse(self)->Individual:
         return self.get_n_worse(1)[0]
@@ -118,9 +124,16 @@ class Population:
         
         return [self[idx] for idx in idxs[:n]]
 
-    def get_closest(self, position:np.ndarray)->Tuple[np.ndarray,np.ndarray]:
+    def get_closest(self, position:np.ndarray, metric:DistanceMetric=DistanceMetric.Euclidean
+                    )->Tuple[np.ndarray,np.ndarray]:
         'Returns the population idxs sorted by euclidean distance and the distances'
-        distances = np.asarray([np.linalg.norm(indiv.data-position) for indiv in self])
+        if metric == DistanceMetric.Euclidean:
+            distances = np.asarray([np.linalg.norm(indiv.data-position) for indiv in self])
+        elif metric == DistanceMetric.Cosine:
+            distances = np.asarray([cosine(indiv.data,position) for indiv in self])
+        else:
+            raise Exception(f'Invalid distance metric: {metric}.')
+
         idxs = np.argsort(distances)
         return idxs,distances
 
@@ -149,11 +162,22 @@ class Optimization:
     evolve_mechanism:EvolveMechanism=EvolveMechanism.Normal
 
     def __post_init__(self):
-        if   self.evolve_mechanism == EvolveMechanism.Normal          : self._evolve_func = self._evolve
-        elif self.evolve_mechanism == EvolveMechanism.Best            : self._evolve_func = self._evolve_with_best
-        elif self.evolve_mechanism == EvolveMechanism.Crowding        : self._evolve_func = self._evolve_crowding
-        elif self.evolve_mechanism == EvolveMechanism.FitnessDiversity: self._evolve_func = self._evolve_fitness_diversity
-        else: raise Exception(f'Invalid evolve mechanism: {self.evolve_mechanism}')
+        # Set evolve mechanism
+        if self.evolve_mechanism == EvolveMechanism.Normal:
+            self._evolve_func = self._evolve
+        elif self.evolve_mechanism == EvolveMechanism.Best:
+            self._evolve_func = self._evolve_with_best
+        elif self.evolve_mechanism == EvolveMechanism.Crowding:
+            self._evolve_func = self._evolve_crowding
+            self._crowding_distance = DistanceMetric.Euclidean
+        elif self.evolve_mechanism == EvolveMechanism.CrowdingCosine:
+            self._evolve_func = self._evolve_crowding
+            self._crowding_distance = DistanceMetric.Cosine
+        elif self.evolve_mechanism == EvolveMechanism.FitnessDiversity:
+            self._evolve_func = self._evolve_fitness_diversity
+        else:
+            raise Exception(f'Invalid evolve mechanism: {self.evolve_mechanism}')
+
         self.get_constraints = listify(self.get_constraints)
         self.have_constraints = len(self.get_constraints)>0
         if self.have_constraints:
@@ -253,7 +277,8 @@ class Optimization:
             offspring.data[picked_dims] = new_data
             offspring.clip_limits()
             # Find closest individual
-            closest_individual = self.population[self.population.get_closest(offspring.data)[0][0]]
+            closest_idx = self.population.get_closest(offspring.data, metric=self._crowding_distance)[0][0]
+            closest_individual = self.population[closest_idx]
             # Store backup of closest before modifying
             self.cb_handler.state_dict['indiv_bkup'] = closest_individual.clone()
             # Modifying the closest one
