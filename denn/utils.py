@@ -1,6 +1,7 @@
 from .imports import *
 
-__all__ = ['pick_n_but', 'get_unique', 'listify', 'ifnone', 'is_listy', 'parallel', 'camel2snake']
+__all__ = ['pick_n_but', 'get_unique', 'listify', 'ifnone', 'is_listy', 'parallel', 'camel2snake',
+           'SchedLin', 'SchedCos', 'SchedExp']
 
 @jit(nopython=True)
 def pick_n_but(n:int, idx:int, size:int):
@@ -50,3 +51,15 @@ def camel2snake(name:str)->str:
     s1 = re.sub(_camel_re1, r'\1_\2', name)
     return re.sub(_camel_re2, r'\1_\2', s1).lower()
 
+def annealer(f):
+    'Decorator to make `f` return itself partially applied.'
+    @functools.wraps(f)
+    def _inner(start, end): return partial(f, start, end)
+    return _inner
+
+@annealer
+def SchedLin(start, end, pos): return start + pos*(end-start)
+@annealer
+def SchedCos(start, end, pos): return start + (1 + math.cos(math.pi*(1-pos))) * (end-start) / 2
+@annealer
+def SchedExp(start, end, pos): return start * (end/start) ** pos

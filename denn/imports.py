@@ -1,4 +1,4 @@
-import re, numpy as np, pandas as pd, matplotlib.pyplot as plt, concurrent, math
+import re, numpy as np, pandas as pd, matplotlib.pyplot as plt, concurrent, math, functools
 from dataclasses import dataclass
 from pathlib import Path
 from functools import partial
