@@ -7,8 +7,8 @@ from scipy.spatial.distance import cosine
 __all__ = ['EvolveMechanism', 'DistanceMetric', 'Individual', 'Population', 'Optimization', 'Runs']
 
 EvolveMechanism = Enum('EvolveMechanism', 'Normal Best Crowding CrowdingN CrowdingCosine CrowdingCosineN FitnessDiversity')
-
 DistanceMetric = Enum('DistanceMetric', 'Euclidean Cosine')
+ScaleFactor = Enum('ScaleFactor', 'Random Constant')
 
 @dataclass
 class Individual:
@@ -187,8 +187,12 @@ class Optimization:
             raise Exception(f'Invalid evolve mechanism: {self.evolve_mechanism}')
 
         # How do we get F
-        if self.beta_min == self.beta_max: self._get_f = self._get_constant_f
-        else                             : self._get_f = self._get_random_f
+        if self.beta_min == self.beta_max:
+            self._get_f = self._get_constant_f
+            self._scale_factor = ScaleFactor.Constant
+        else:
+            self._get_f = self._get_random_f
+            self._scale_factor = ScaleFactor.Random
 
         # Handle constraints
         self.get_constraints = listify(self.get_constraints)
