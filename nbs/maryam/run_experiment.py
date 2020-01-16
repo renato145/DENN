@@ -9,6 +9,7 @@ Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
 Method = Enum('Method', 'noNNRestart noNN NNnorm NNdrop')
 FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
 DiversityMethod = Enum('DiversityMethod', 'RI Cw Cwc CwN CwcN')
+ScaleFactor = Enum('ScaleFactor', 'Random Constant')
 
 class DropoutModel(nn.Module):
     def __init__(self, d:int, w:int, nf:int, dropout:float=0.5):
@@ -67,16 +68,22 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
     return fitness_func,constraint_func
 
 def main(experiment:str, func_name:str, method:str, frequency:int=1, freq_save:int=1, diversity_method:Optional[str]=None,
-save:bool=True, pbar:bool=True, silent:bool=True,  cluster:bool=False, replace_mech:Optional[str]=None, nn_window:int=5,
-nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, nn_epochs:int=10, nn_train_window:Optional[int]=None, batch_size:int=4,
+scale_factor:str='Random', save:bool=True, pbar:bool=True, silent:bool=True,  cluster:bool=False, replace_mech:Optional[str]=None,
+nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, nn_epochs:int=10, nn_train_window:Optional[int]=None, batch_size:int=4,
 D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     func_type = getattr(FuncName, func_name)
+    scale_factor = ScaleFactor[scale_factor]
+    total_generations = int(max_times * frequency * 1_000_000 + 1_000)
+
+    # Setting path
     path = Path(f'../../data/results/{experiment}/{func_name}')
     if cluster: path = Path(f'DENN/data/cluster_results/{experiment}/{func_name}') # this is for the cluster
+
+    # If its neural network, consider more parameters
     if is_nn:
         path = path / 'nn'
         name = f'freq{freq_save}nn_w{nn_window}nn_p{nn_pick}nn_s{nn_sample_size}nn_tw{nn_train_window}nn_bs{batch_size}nn_epoch{nn_epochs}' #nn_s{nn_sample_size}nn_tw{nn_train_window}
@@ -84,17 +91,34 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
         path = path / 'nonn'
         name = f'freq{freq_save}'
 
+    # Set diversity method
     if diversity_method is not None:
         name += f'div{diversity_method}'
         diversity_method = DiversityMethod[diversity_method] 
     else:
         name += 'divNo'
 
+    # Set scale factor
+    if scale_factor == ScaleFactor.Random:
+        beta_min = 0.2
+        beta_max = 0.8
+        CR = 0.3
+    elif scale_factor == ScaleFactor.Constant:
+        beta_min = 0.2
+        beta_max = 0.2
+        CR = 0.9
+    else:
+        raise Exception(f'Invalid scale_factor: {scale_factor}.')
+
+    # Create output folder
     out_path = path / name
     out_path.mkdir(parents=True, exist_ok=True)
+
+    # Set fitness and constraint functions
     fitness_func,constraint_func = get_functions(experiment_type, D, func_type)
+
+    # Set an experiment name to save metrics
     experiment_name = f'{method}'
-    total_generations = int(max_times * frequency * 1_000_000 + 1_000)
     if is_nn:
         experiment_name += f'_{replace_mech}'
         replace_type = getattr(ReplaceMechanism, replace_mech)
@@ -154,7 +178,7 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
         population = Population.new_random(dimension=D)
         speed_metric = partial(SpeedMetric, threadhold=0.1)
         opt = Optimization(population, fitness_func, constraint_func, fitness_params=ab, constraint_params=[ab],
-                           max_times=max_times, frequency=frequency, callbacks=callbacks,
+                           max_times=max_times, frequency=frequency, callbacks=callbacks, beta_min=beta_min, beta_max=beta_max, CR=CR,
                            metrics=[speed_metric, ModifiedOfflineError, OfflineError, AbsoluteRecoverRate],
                            optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv, evolve_mechanism=evolve_mechanism)
         opt.run(total_generations, show_graph=False, show_report=False, silent=silent)

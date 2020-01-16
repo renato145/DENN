@@ -186,6 +186,11 @@ class Optimization:
         else:
             raise Exception(f'Invalid evolve mechanism: {self.evolve_mechanism}')
 
+        # How do we get F
+        if self.beta_min == self.beta_max: self._get_f = self._get_constant_f
+        else                             : self._get_f = self._get_random_f
+
+        # Handle constraints
         self.get_constraints = listify(self.get_constraints)
         self.have_constraints = len(self.get_constraints)>0
         if self.have_constraints:
@@ -235,6 +240,9 @@ class Optimization:
     def eval_feasibility(self, indiv:Individual)->bool:
         return indiv.constraints_sum == 0
 
+    def _get_constant_f(self, n:int)->np.ndarray: return np.ones(n)*self.beta_min
+    def _get_random_f(self, n:int)->np.ndarray: return np.random.uniform(self.beta_min, self.beta_max, size=n)
+
     def _evolve(self, indiv:Individual)->Individual:
         'This is the normal evolution mechanism.'
         dims = indiv.dimensions
@@ -244,7 +252,7 @@ class Optimization:
 
         if len(picked_dims) > 0:
             picked = [self.population[i].data[picked_dims] for i in pick_n_but(3, indiv.idx, len(self.population))]
-            F = np.random.uniform(self.beta_min, self.beta_max, size=len(picked_dims))
+            F = self._get_f(len(picked_dims))
             new_data = picked[0] + F*(picked[1] - picked[2])
             indiv.data[picked_dims] = new_data
             indiv.clip_limits()
