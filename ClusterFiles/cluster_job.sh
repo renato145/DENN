@@ -11,5 +11,5 @@
 #SBATCH --mail-user=maryam.hasanishoreh@adelaide.edu.au # Email to which notification will be sent                                                                               
 
 # Executing script (Example here is sequential script)
-python run_experiment.py $experiment $func_name $method $frequency $frequency_save $diversity_method $save $pbar $silent $cluster
-# sbatch --export=ALL,experiment="exp1",func_name="sphere",method="noNN",frequency=1,frequency_save=1,diversity_method=None,save="True",pbar="False",silent="True",cluster="True"
+python run_experiment.py $experiment $func_name $method $frequency $frequency_save $diversity_method $scale_factor $save $pbar $silent $cluster
+# sbatch --export=ALL,experiment="exp1",func_name="sphere",method="noNN",frequency=1,frequency_save=1,diversity_method=None,scale_factor="Random",save="True",pbar="False",silent="True",cluster="True"
