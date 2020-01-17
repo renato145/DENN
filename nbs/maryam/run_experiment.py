@@ -75,7 +75,7 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
     method_type = getattr(Method, method)
     is_nn = method_type in [Method.NNnorm, Method.NNdrop]
     func_type = getattr(FuncName, func_name)
-    scale_factor = ScaleFactor[scale_factor]
+    scale_factor = getattr(ScaleFactor, scale_factor) #ScaleFactor[scale_factor]
     total_generations = int(max_times * frequency * 1_000_000 + 1_000)
 
     # Setting path
