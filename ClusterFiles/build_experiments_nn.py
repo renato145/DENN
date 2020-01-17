@@ -16,7 +16,7 @@ for diversity_method in ['None', 'CwN']:#'RI','Cw', 'None', 'Cwc', 'CwN', CwcN'
 		for replace_mech in ['Worst']: #'Random',
 			for exp in ['exp1','exp2','exp3','exp4']:
 				for func in ['sphere','rosenbrock','rastrigin']:
-					lines.append(f'''sbatch --export=ALL,experiment="{exp}",func_name="{func}",method="NNnorm",frequency="{freq}",frequency_save="{freq}",diversity_method="{diversity_method}",scale_factor="Constant",save="True",pbar="False",silent="False",cluster="True",replace_mech={replace_mech},nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,nn_epochs=3,nn_train_window=5,batch_size=4 cluster_job_nn.sh\n''')
+					lines.append(f'''sbatch --export=ALL,experiment="{exp}",func_name="{func}",method="NNnorm",frequency="{freq}",frequency_save="{freq}",diversity_method="{diversity_method}",scale_factor="Random",save="True",pbar="False",silent="False",cluster="True",replace_mech={replace_mech},nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,nn_epochs=3,nn_train_window=5,batch_size=4 cluster_job_nn.sh\n''')
 
 with open(out_file, 'w') as f: f.writelines(lines)
 

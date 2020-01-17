@@ -18,7 +18,7 @@ for freq in [0.5,1,4]:
 			for func in ['sphere','rosenbrock','rastrigin']:
 				# train_window = None if sample_size==1 else 5
 				# epochs       = 10   if sample_size==1 else 3
-				lines.append(f'''sbatch --export=ALL,experiment="{exp}",func_name="{func}",method="noNN",frequency="{freq}",frequency_save="{freq}",diversity_method={diversity_method},scale_factor="Constant",save="True",pbar="False",silent="False",cluster="True" cluster_job.sh\n''')
+				lines.append(f'''sbatch --export=ALL,experiment="{exp}",func_name="{func}",method="noNN",frequency="{freq}",frequency_save="{freq}",diversity_method={diversity_method},scale_factor="Random",save="True",pbar="False",silent="False",cluster="True" cluster_job.sh\n''')
 
 with open(out_file, 'w') as f: f.writelines(lines)
 
