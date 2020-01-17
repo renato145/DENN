@@ -9,6 +9,7 @@ Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
 Method = Enum('Method', 'noNNRestart noNN NNnorm NNdrop')
 FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
 DiversityMethod = Enum('DiversityMethod', 'RI Cw Cwc CwN CwcN')
+ScaleFactor = Enum('ScaleFactor', 'Random Constant')
 
 class DropoutModel(nn.Module):
     def __init__(self, d:int, w:int, nf:int, dropout:float=0.5):
