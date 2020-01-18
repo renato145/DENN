@@ -162,7 +162,7 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
             evolve_mechanism = EvolveMechanism.Normal
         elif diversity_method == DiversityMethod.RI:
             evolve_mechanism = EvolveMechanism.Normal
-            callbacks.append(RandomImmigrants)
+            callbacks.append(RandomImmigrantsOnChange)
         elif diversity_method == DiversityMethod.Cw:
             evolve_mechanism = EvolveMechanism.Crowding
         elif diversity_method == DiversityMethod.Cwc:
