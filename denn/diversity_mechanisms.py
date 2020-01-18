@@ -36,7 +36,7 @@ class RandomImmigrantsOnChange(Callback):
             picked_idxs = np.random.choice(idxs, self.replacement_rate, replace=False)
             for idx in picked_idxs: self.optim.population[idx].refresh()
 
-        return {'detected_idxs':detected_idxs+picked_idxs}
+        return {'detected_idxs':detected_idxs+picked_idxs.tolist()}
 
 class Hypermutation(Callback):
     def __init__(self, value:float, anneal_func:Callable=SchedExp):
