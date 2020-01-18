@@ -4,7 +4,7 @@ from .callbacks import *
 from .utils import *
 from scipy.spatial.distance import cosine
 
-__all__ = ['EvolveMechanism', 'DistanceMetric', 'Individual', 'Population', 'Optimization', 'Runs']
+__all__ = ['EvolveMechanism', 'DistanceMetric', 'ScaleFactor', 'Individual', 'Population', 'Optimization', 'Runs']
 
 EvolveMechanism = Enum('EvolveMechanism', 'Normal Best Crowding CrowdingN CrowdingCosine CrowdingCosineN FitnessDiversity')
 DistanceMetric = Enum('DistanceMetric', 'Euclidean Cosine')
