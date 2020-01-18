@@ -20,6 +20,8 @@ class RandomImmigrants(Callback):
         raise NotImplementedError
 
 class RandomImmigrantsOnChange(Callback):
+    _order = 10 # Needs to run after `NNTrainer`
+
     def __init__(self, optim:'Optimization', replacement_rate:int=3):
         '''
         Modification on the original version to apply only when changes are detected.
@@ -28,13 +30,13 @@ class RandomImmigrantsOnChange(Callback):
         super().__init__(optim)
         self.replacement_rate = replacement_rate
 
-    def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->dict:
-        idxs = []
+    def on_detect_change_end(self, change_detected:bool, detected_idxs:Ints, **kwargs:Any)->dict:
         if change_detected:
-            picked_idxs = np.random.choice(self.optim.population.n, self.replacement_rate, replace=False)
+            idxs = [o for o in range(self.optim.population.n) if o not in detected_idxs]
+            picked_idxs = np.random.choice(idxs, self.replacement_rate, replace=False)
             for idx in picked_idxs: self.optim.population[idx].refresh()
 
-        return {'detected_idxs':picked_idxs}
+        return {'detected_idxs':detected_idxs+picked_idxs}
 
 class Hypermutation(Callback):
     def __init__(self, value:float, anneal_func:Callable=SchedExp):
