@@ -8,7 +8,7 @@ from torch import nn
 Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
 Method = Enum('Method', 'noNNRestart noNN NNnorm NNdrop')
 FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
-DiversityMethod = Enum('DiversityMethod', 'RI Cw Cwc CwN CwcN')
+DiversityMethod = Enum('DiversityMethod', 'RI Cw Cwc CwN CwcN HypMu')
 
 class DropoutModel(nn.Module):
     def __init__(self, d:int, w:int, nf:int, dropout:float=0.5):
@@ -171,6 +171,8 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
             evolve_mechanism = EvolveMechanism.CrowdingN
         elif diversity_method == DiversityMethod.CwcN:
             evolve_mechanism = EvolveMechanism.CrowdingCosineN
+        elif diversity_method == DiversityMethod.HypMu:
+            callbacks.append(Hypermutation)
         else: raise Exception(f'Invalid diversity method: {diversity_method}.')
 
         #first pop created here and passed to optimization
