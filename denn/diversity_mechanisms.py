@@ -40,7 +40,7 @@ class RandomImmigrantsOnChange(Callback):
 
 class Hypermutation(Callback):
     def __init__(self, optim:'Optimization', CR:float=0.6, beta_min:float=0.6, beta_max:float=0.8,
-                 frequency_factor:float=50.0):
+                 frequency_factor:float=10.0):
         '''From: "An investigation into the use of hypermutation as an adaptive operator in genetic
                   algorithms having continuous, time-dependent nonstationary environments"
         Temporaly increases `F`, `beta_min` and `beta_max` when a change is detected.
@@ -61,9 +61,11 @@ class Hypermutation(Callback):
             self.current_gen = 0
 
     def on_gen_end(self, **kwargs:Any)->None:
+        # print(f'({self.current_gen}) CR={self.optim.CR} - beta_min={self.optim.beta_min} - beta_max={self.optim.beta_max}')
         if self.current_gen == self.generations:
-            self.optim.CR =  self.base_CR
+            self.optim.CR = self.base_CR
             self.optim.beta_min = self.base_beta_min
             self.optim.beta_max = self.base_beta_max
+            # import pdb; pdb.set_trace()
 
         self.current_gen += 1
