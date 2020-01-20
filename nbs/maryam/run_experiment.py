@@ -8,7 +8,7 @@ from torch import nn
 Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
 Method = Enum('Method', 'noNNRestart noNN NNnorm NNdrop')
 FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
-DiversityMethod = Enum('DiversityMethod', 'RI Cw Cwc CwN CwcN HypMu')
+DiversityMethod = Enum('DiversityMethod', 'RI Cw Cwc CwN CwcN HMu')
 
 class DropoutModel(nn.Module):
     def __init__(self, d:int, w:int, nf:int, dropout:float=0.5):
@@ -101,7 +101,7 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
     if scale_factor == ScaleFactor.Random:
         beta_min = 0.2
         beta_max = 0.8
-        CR = 0.3
+        CR = 0.8
     elif scale_factor == ScaleFactor.Constant:
         beta_min = 0.2
         beta_max = 0.2
@@ -171,7 +171,7 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
             evolve_mechanism = EvolveMechanism.CrowdingN
         elif diversity_method == DiversityMethod.CwcN:
             evolve_mechanism = EvolveMechanism.CrowdingCosineN
-        elif diversity_method == DiversityMethod.HypMu:
+        elif diversity_method == DiversityMethod.HMu:
             evolve_mechanism = EvolveMechanism.Normal
             callbacks.append(Hypermutation)
         else: raise Exception(f'Invalid diversity method: {diversity_method}.')
