@@ -101,7 +101,7 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
     if scale_factor == ScaleFactor.Random:
         beta_min = 0.2
         beta_max = 0.8
-        CR = 0.8
+        CR = 0.3
     elif scale_factor == ScaleFactor.Constant:
         beta_min = 0.2
         beta_max = 0.2
