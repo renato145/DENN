@@ -39,8 +39,8 @@ class RandomImmigrantsOnChange(Callback):
         return {'detected_idxs':detected_idxs+picked_idxs.tolist()}
 
 class Hypermutation(Callback):
-    def __init__(self, optim:'Optimization', CR:float=0.6, beta_min:float=0.6, beta_max:float=0.8,
-                 frequency_factor:float=10.0):
+    def __init__(self, optim:'Optimization', CR:float=0.3, beta_min:float=0.6, beta_max:float=0.8,
+                 frequency_factor:float=16.0): #frequency_factor:float=15.0
         '''From: "An investigation into the use of hypermutation as an adaptive operator in genetic
                   algorithms having continuous, time-dependent nonstationary environments"
         Temporaly increases `F`, `beta_min` and `beta_max` when a change is detected.
