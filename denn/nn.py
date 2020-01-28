@@ -6,7 +6,7 @@ from .callbacks import *
 from .optimization import *
 from .metrics import NNTimer
 
-__all__ = ['ReplaceMechanism', 'NNTrainer', 'NNTrainerNoNoise']
+__all__ = ['ReplaceMechanism', 'NNTrainer', 'NNTrainerNoNoise', 'NNTrainerTime']
 
 class ReplaceMechanism(IntEnum):
     '''Mechanism to replace individuals after a time change has been detected.
@@ -161,7 +161,8 @@ class NNTrainer(Callback):
     def get_next_best(self)->Tensor:
         with torch.no_grad():
             xb = torch.from_numpy(np.vstack([(e[0].data) for e in self.data[-self.window:]])).float()[None]
-            pred = self.model.eval()(xb.to(self.device))[0]
+            timeb = torch.LongTensor([self.optim.state_dict['time']])[None]
+            pred = self.model.eval()(xb.to(self.device), timeb.to(self.device))[0]
             return pred.cpu()
 
     def apply_predictions(self)->Collection[int]:
@@ -174,11 +175,82 @@ class NNTrainer(Callback):
         # Modify population
         return self.modify_population(preds)
     
-# This method is used as the model for dropout
 class NNTrainerNoNoise(NNTrainer):
+    'This method is used as the model for dropout'
     def apply_predictions(self)->Collection[int]:
         # Get predictions
         preds = [self.get_next_best() for _ in repeat(None, self.n)]
         preds = torch.stack(preds, dim=0).numpy()
         # Modify population
         return self.modify_population(preds)
+
+class NNTrainerTime(NNTrainer):
+    'This method gives the NN a time parameter `m(x,y)`.'
+    def __init__(self, optim:'Optimization', model:nn.Module, replace_mechanism:ReplaceMechanism=ReplaceMechanism.Random, n:int=3, noise_range:float=0.5,
+                 sample_size:int=1, window:int=5, min_batches:int=20, train_window:Optional[int]=None, bs:int=4, epochs:int=10,
+                 loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam,
+                 sampling_method:SamplingMethod=SamplingMethod.Limit, sampling_limit:int=32, cuda:bool=False):
+        super().__init__(optim, model=model, replace_mechanism=replace_mechanism, n=n, noise_range=noise_range,
+                 sample_size=sample_size, window=window, min_batches=min_batches, train_window=train_window, bs=bs, epochs=epochs,
+                 loss_func=loss_func, nn_optim=nn_optim, sampling_method=sampling_method, sampling_limit=sampling_limit, cuda=cuda)
+        self.data_time = []
+
+    def update_data(self)->None:
+        time = self.optim.state_dict['time']
+        w = self.window
+        data_x = []
+        this_x = self.data[-(w+1):-1]
+
+        if self.sample_cache is None: self.sample_cache = list(product(range(self.sample_size), repeat=w))
+
+        if self.sampling_method==SamplingMethod.All:
+            samples = self.sample_cache
+        elif self.sampling_method == SamplingMethod.Limit:
+            samples = self.sample_cache
+            if len(samples) > self.sampling_limit:
+                picked_idxs = np.random.choice(len(samples), size=self.sampling_limit, replace=False)
+                samples = [samples[i] for i in picked_idxs]
+
+        for idxs in samples:
+            tx = torch.from_numpy(np.vstack([x[idx].data for idx,x in zip(idxs,this_x)])).float()
+            data_x.append(tx)
+
+        data_x = torch.stack(data_x).float()
+        data_y = torch.from_numpy(self.data[-1][0].data).float() # The best individual of the last time
+        self.data_x.append(data_x)
+        self.data_y.append(data_y.repeat(data_x.size(0),1))
+        self.data_time.append(torch.LongTensor([time]))
+        # Apply train_window
+        if self.train_window is not None:
+            self.data_x = self.data_x[-self.train_window:]
+            self.data_y = self.data_y[-self.train_window:]
+            self.data_time = self.data_time[-self.train_window:]
+
+    def get_train_data(self)->Tuple[Tensor,Tensor,Tensor]:
+        return torch.cat(self.data_x).to(self.device),torch.cat(self.data_time).to(self.device),torch.cat(self.data_y).to(self.device)
+
+    def do_train(self)->None:
+        bs,epochs,model,loss_func,nn_optim = self.bs,self.epochs,self.model,self.loss_func,self.nn_optim
+        model.train()
+        data_x,data_time,data_y = self.get_train_data()
+        n_batches = math.ceil(data_x.size(0)/bs)
+        # Train loop
+        losses = [] # TODO: make this a running average
+        for epoch in range(epochs):
+            for i in range(n_batches):
+                xb,timeb,yb = data_x[i*bs:(i+1)*bs],data_time[i*bs:(i+1)*bs],data_y[i*bs:(i+1)*bs]
+                yb_ = model(xb,timeb)
+                loss = loss_func(yb,yb_)
+                loss.backward()
+                nn_optim.step()
+                nn_optim.zero_grad()
+                losses.append(loss.detach().cpu())
+
+        self.train_losses.append(np.mean(losses))
+
+    def get_next_best(self)->Tensor:
+        with torch.no_grad():
+            xb = torch.from_numpy(np.vstack([(e[0].data) for e in self.data[-self.window:]])).float()[None]
+            timeb = torch.LongTensor([self.optim.state_dict['time']+1])
+            pred = self.model.eval()(xb.to(self.device), timeb.to(self.device))[0]
+            return pred.cpu()

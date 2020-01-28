@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import nn
 
 Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
-Method = Enum('Method', 'noNNRestart noNN NNnorm NNdrop')
+Method = Enum('Method', 'noNNRestart noNN NNnorm NNdrop NNtime')
 FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
 DiversityMethod = Enum('DiversityMethod', 'RI Cw Cwc CwN CwcN HMu')
 
@@ -31,6 +31,19 @@ class SimpleModel(nn.Module):
         
     def forward(self, x):
         fts = torch.cat([self.fc1(x[:,i]) for i in range(x.size(1))], dim=1)
+        return self.fc2(self.act(fts))
+
+class TimeModel(nn.Module):
+    def __init__(self, d, w, nf):
+        super().__init__()
+        self.fc1 = nn.Linear(d,nf)
+        self.fc2 = nn.Linear(nf*(w+1),d)
+        self.act = nn.ReLU(inplace=True)
+        self.emb = nn.Linear(1, nf)
+        
+    def forward(self, x, time):
+        embs = self.emb(time.float()[:,None])
+        fts = torch.cat([self.fc1(x[:,i]) for i in range(x.size(1))]+[embs], dim=1)
         return self.fc2(self.act(fts))
 
 def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[Callable]:
@@ -73,7 +86,7 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
-    is_nn = method_type in [Method.NNnorm, Method.NNdrop]
+    is_nn = method_type in [Method.NNnorm, Method.NNdrop, Method.NNtime]
     func_type = getattr(FuncName, func_name)
     scale_factor = getattr(ScaleFactor, scale_factor) #ScaleFactor[scale_factor]
     total_generations = int(max_times * frequency * 1_000_000 + 1_000)
@@ -145,8 +158,12 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
         callbacks = []
         if is_nn:
             if method_type==Method.NNnorm:
-                model = SimpleModel (d=D, w=nn_window, nf=nn_nf) 
+                model = SimpleModel(d=D, w=nn_window, nf=nn_nf) 
                 nn_trainer = partial(NNTrainer, model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
+                                     train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs)
+            if method_type==Method.NNtime:
+                model = TimeModel(d=D, w=nn_window, nf=nn_nf) 
+                nn_trainer = partial(NNTrainerTime, model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
                                      train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs)
             if method_type==Method.NNdrop:
                 model = DropoutModel(d=D, w=nn_window, nf=nn_nf, dropout=dropout) 
