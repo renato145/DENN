@@ -12,8 +12,8 @@ lines = []
 # sbatch --export=ALL,experiment="exp1",func_name="sphere",method="noNN",frequency=1,frequency_save=1,diversity_method=None,save="True",pbar="False",silent="True",cluster="True"
 # for replace_mech in ['Random','Worst']:
 	# for sample_size in [1,3,7,9]:
-for freq in [0.5,1,4]:	
-	for diversity_method in ['HMu']:#'RI', 'None', 'CwN'
+for freq in [10,20]:	
+	for diversity_method in ['RI', 'None', 'CwN','HMu']:#'RI', 'None', 'CwN'
 		for exp in ['exp1','exp2','exp3','exp4']:
 			for func in ['sphere','rosenbrock','rastrigin']:
 				# train_window = None if sample_size==1 else 5
