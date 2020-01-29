@@ -162,8 +162,12 @@ class Optimization:
     optimal_sum_constraints:Optional[Collection[float]]=None
     evolve_mechanism:EvolveMechanism=EvolveMechanism.Normal
     crowding_n_pick:int=5
+    path:Optional[PathOrStr]=None
 
     def __post_init__(self):
+        self.path = Path(ifnone(self.path, '.'))
+        self.path.mkdir(parents=True, exist_ok=True)
+
         # Set evolve mechanism
         if self.evolve_mechanism == EvolveMechanism.Normal:
             self._evolve_func = self._evolve
