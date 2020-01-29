@@ -1,7 +1,6 @@
 from .imports import *
 
-__all__ = ['pick_n_but', 'get_unique', 'listify', 'ifnone', 'is_listy', 'parallel', 'camel2snake',
-           'SchedLin', 'SchedCos', 'SchedExp']
+__all__ = ['pick_n_but', 'get_unique', 'listify', 'ifnone', 'is_listy', 'parallel', 'camel2snake', 'SchedLin', 'SchedCos', 'SchedExp']
 
 @jit(nopython=True)
 def pick_n_but(n:int, idx:int, size:int):
