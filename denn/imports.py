@@ -17,3 +17,4 @@ from itertools import repeat
 Path.ls = lambda x: list(x.iterdir())
 PBar = Union[MasterBar, ProgressBar]
 Ints = Union[int, Collection[int]]
+PathOrStr = Union[Path, str]
