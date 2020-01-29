@@ -59,11 +59,11 @@ class Individual:
                               idx=self.idx, gen=self.gen, time=self.time, fitness_value=self.fitness_value, constraints=self.constraints,
                               constraints_sum=self.constraints_sum, is_feasible=self.is_feasible, data=self.data.copy())
 
-    def copy_from(self, indiv:'Individual')->None:
+    def copy_from(self, indiv:'Individual', copy_index:bool=False)->None:
+        if copy_index: self.idx = indiv.idx
         self.dimensions = indiv.dimensions
         self.lower_limit = indiv.lower_limit
         self.upper_limit = indiv.upper_limit
-        self.idx = indiv.idx
         self.gen = indiv.gen
         self.time = indiv.time
         self.fitness_value = indiv.fitness_value

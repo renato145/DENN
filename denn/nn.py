@@ -161,8 +161,7 @@ class NNTrainer(Callback):
     def get_next_best(self)->Tensor:
         with torch.no_grad():
             xb = torch.from_numpy(np.vstack([(e[0].data) for e in self.data[-self.window:]])).float()[None]
-            timeb = torch.LongTensor([self.optim.state_dict['time']])[None]
-            pred = self.model.eval()(xb.to(self.device), timeb.to(self.device))[0]
+            pred = self.model.eval()(xb.to(self.device))[0]
             return pred.cpu()
 
     def apply_predictions(self)->Collection[int]:

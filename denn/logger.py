@@ -7,6 +7,7 @@ from .optimization import *
 __all__ = ['Logger']
 
 class Logger(Callback):
+    _order = 20
     def __init__(self, optim:Optimization, out_file:str='logger.json'):
         super().__init__(optim)
         self.path = optim.path / out_file
@@ -26,16 +27,14 @@ class Logger(Callback):
         for indiv in self.optim.population:
             if indiv.idx == best_idx: i+=1
             data.append({
+                'idx': indiv.idx,
                 'data': indiv.data.tolist(),
                 'is_best': indiv.idx == best_idx,
-                'fitness_value': indiv.fitness_value,
-                'constraints_sum': indiv.constraints_sum,
+                'fitness_value': float(indiv.fitness_value),
+                'constraints_sum': float(indiv.constraints_sum),
                 'is_feasible': bool(indiv.is_feasible),
                 'time': time,
             })
-
-        if i>1:
-            import pdb; pdb.set_trace()
 
         self.data['data'].append(data)
 
