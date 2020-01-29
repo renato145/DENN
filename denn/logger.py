@@ -12,7 +12,12 @@ class Logger(Callback):
         self.path = optim.path / out_file
 
     def __repr__(self)->str: return f'{self.__class__.__name__}(path={str(self.path)!r})'
-    def on_run_begin(self, **kwargs:Any)->None: self.data = []
+    def on_run_begin(self, **kwargs:Any)->None:
+        population = self.optim.population
+        self.data = {
+            'limits': [population.lower_limit,population.upper_limit],
+            'data': [],
+        }
 
     def on_gen_begin(self, gen:int, time:int, best:Individual, **kwargs:Any)->None:
         data = []
@@ -26,6 +31,6 @@ class Logger(Callback):
                 'is_feasible': bool(indiv.is_feasible),
             })
 
-        self.data.append(data)
+        self.data['data'].append(data)
 
     def on_run_end(self, **kwargs:Any)->None: json.dump(self.data, self.path.open('w'))
