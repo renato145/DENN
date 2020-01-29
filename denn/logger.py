@@ -22,14 +22,20 @@ class Logger(Callback):
     def on_gen_begin(self, gen:int, time:int, best:Individual, **kwargs:Any)->None:
         data = []
         best_idx = best.idx
+        i = 0
         for indiv in self.optim.population:
+            if indiv.idx == best_idx: i+=1
             data.append({
                 'data': indiv.data.tolist(),
                 'is_best': indiv.idx == best_idx,
                 'fitness_value': indiv.fitness_value,
                 'constraints_sum': indiv.constraints_sum,
                 'is_feasible': bool(indiv.is_feasible),
+                'time': time,
             })
+
+        if i>1:
+            import pdb; pdb.set_trace()
 
         self.data['data'].append(data)
 
