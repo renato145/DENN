@@ -15,16 +15,16 @@ class Logger(Callback):
     def on_run_begin(self, **kwargs:Any)->None: self.data = []
 
     def on_gen_begin(self, gen:int, time:int, best:Individual, **kwargs:Any)->None:
-        data = {}
+        data = []
         best_idx = best.idx
         for indiv in self.optim.population:
-            data[indiv.idx] = {
+            data.append({
                 'data': indiv.data.tolist(),
                 'is_best': indiv.idx == best_idx,
                 'fitness_value': indiv.fitness_value,
                 'constraints_sum': indiv.constraints_sum,
                 'is_feasible': bool(indiv.is_feasible),
-            }
+            })
 
         self.data.append(data)
 
