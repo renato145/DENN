@@ -42,7 +42,7 @@ class TimeModel(nn.Module):
         self.emb = nn.Linear(1, nf)
         
     def forward(self, x, time):
-        embs = self.emb(time.float()[:,None])
+        embs = self.emb(time.repeat(x.size(0)).float()[:,None])
         fts = torch.cat([self.fc1(x[:,i]) for i in range(x.size(1))]+[embs], dim=1)
         return self.fc2(self.act(fts))
 
