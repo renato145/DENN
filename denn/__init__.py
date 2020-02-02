@@ -6,3 +6,4 @@ from .metrics import *
 from .callbacks import *
 from .optimization import *
 from .diversity_mechanisms import *
+from .explore import *

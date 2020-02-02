@@ -1,4 +1,4 @@
-import re, numpy as np, pandas as pd, matplotlib.pyplot as plt, concurrent, math, functools
+import re, numpy as np, pandas as pd, matplotlib.pyplot as plt, concurrent, math, functools, warnings
 from dataclasses import dataclass
 from pathlib import Path
 from functools import partial
@@ -18,3 +18,5 @@ Path.ls = lambda x: list(x.iterdir())
 PBar = Union[MasterBar, ProgressBar]
 Ints = Union[int, Collection[int]]
 PathOrStr = Union[Path, str]
+Paths = Collection[PathOrStr]
+Strings = Collection[str]
