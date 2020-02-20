@@ -1,6 +1,9 @@
 # DENN: Dynamic Evolution Neural Networks
 
-Code used in "Neural Networks in Evolutionary Dynamic Constrained Optimization: Computational Cost and Benefits" [[arxiv]](https://arxiv.org/abs/2001.11588)
+A framework to experiment with Evolution Algorithms inpired in [fastai](https://github.com/fastai/fastai).
+
+Code used in:
+- "Neural Networks in Evolutionary Dynamic Constrained Optimization: Computational Cost and Benefits" [[arxiv]](https://arxiv.org/abs/2001.11588)
 
 ## Citation
 
