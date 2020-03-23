@@ -4,7 +4,7 @@ from itertools import product
 from .imports import *
 from .callbacks import *
 from .optimization import *
-from .metrics import NNTimer
+from .metrics import NNTimer, NNErrors
 
 __all__ = ['ReplaceMechanism', 'NNTrainer', 'NNTrainerNoNoise', 'NNTrainerTime']
 
@@ -65,6 +65,8 @@ class NNTrainer(Callback):
         self.lims = self.optim.population.lower_limit,self.optim.population.upper_limit
         optim.callbacks.append(NNTimer)
         optim.metrics.append(NNTimer)
+        optim.callbacks.append(NNErrors)
+        optim.metrics.append(NNErrors)
 
     def _replace_random(self, preds:np.ndarray)->Collection[int]:
         idxs = np.random.choice(self.n_individuals, size=self.n, replace=False)
@@ -91,7 +93,7 @@ class NNTrainer(Callback):
         for i,idx in enumerate(idxs): self.optim.population[idx].data = preds[i]
         return idxs
 
-    def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->dict:
+    def on_detect_change_end(self, change_detected:bool, time:int, **kwargs:Any)->dict:
         start_time = get_time()
         idxs = []
         if change_detected:
@@ -101,6 +103,11 @@ class NNTrainer(Callback):
             if self.batch_per_time*(len(self.data)-self.window-1) >= self.min_batches:
                 self.do_train()
                 idxs = self.apply_predictions()
+                this_time_predictions = [self.optim.population[i].data for i in idxs]
+                if time<(self.optim.max_times-1):
+                    next_best = self.optim.optimal_positions[time+1]
+                    error = np.mean([np.linalg.norm(pred-next_best) for pred in this_time_predictions])
+                    self.optim.nn_errors.metrics.append(error)
 
         self.optim.nn_timer.times.append(get_time() - start_time) # Check this
         return {'detected_idxs':idxs}

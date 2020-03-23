@@ -2,7 +2,7 @@ from .imports import *
 from .callbacks import *
 from .utils import *
 
-__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'OfflineError', 'ModifiedOfflineError', 'AbsoluteRecoverRate', 'NNTimer']
+__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'OfflineError', 'ModifiedOfflineError', 'AbsoluteRecoverRate', 'NNTimer', 'NNErrors']
 
 def get_metrics(metrics:Optional[Collection['Metric']])->Collection[Optional['Metric']]:
     metrics = listify(metrics)
@@ -142,3 +142,9 @@ class NNTimer(Metric):
         self.total_time = sum(self.times)
         elapsed = get_time() - self.optim.recorder.start_time
         self.metrics = self.total_time / elapsed
+
+class NNErrors(Metric):
+    def __init__(self, optim:'Optimization'):
+        'Records the errors of predicted values by the neural network.'
+        super().__init__(optim)
+        self.metrics = []

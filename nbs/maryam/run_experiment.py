@@ -142,14 +142,16 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
         df = pd.read_csv(tmp_path/'best_known.csv')
         best_known_fitness = df['fitness'].values
         best_known_sumcv   = df['sum_constraints'].values
+        best_known_positions = np.load(f'DENN/nbs/maryam/{experiment}_{func_name}.npy')
     else:
         ab = pd.read_csv(path.parent/'dC_01.csv')['b'].values
         df = pd.read_csv(path.parent/'best_known.csv')
         best_known_fitness = df['fitness'].values
         best_known_sumcv   = df['sum_constraints'].values
+        best_known_positions = np.load(f'{experiment}_{func_name}.npy')
 
     # Initialize metrics
-    results = {'mof':[], 'sr':[], 'nfe':[], 'fitness':[], 'sumcv':[], 'arr':[]}
+    results = {'mof':[], 'sr':[], 'nfe':[], 'fitness':[], 'sumcv':[], 'arr':[], 'nn_errors':[]}
     if is_nn: results['nn_time'] = []
 
     # Run
@@ -203,7 +205,9 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
         opt = Optimization(population, fitness_func, constraint_func, fitness_params=ab, constraint_params=[ab],
                            max_times=max_times, frequency=frequency, callbacks=callbacks, beta_min=beta_min, beta_max=beta_max, CR=CR,
                            metrics=[speed_metric, ModifiedOfflineError, OfflineError, AbsoluteRecoverRate],
-                           optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv, evolve_mechanism=evolve_mechanism)
+                           optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv,
+                           optimal_positions=best_known_positions,
+                           evolve_mechanism=evolve_mechanism)
         opt.run(total_generations, show_graph=False, show_report=False, silent=silent)
 
         # Store results
@@ -213,7 +217,10 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
         results['nfe'].append(opt.speed_metric.speeds)
         results['fitness'].append(opt.recorder.best_times_fitness)
         results['sumcv'].append(opt.recorder.best_times_constraints)
-        if is_nn: results['nn_time'].append(opt.nn_timer.metrics)
+        if is_nn:
+            results['nn_time'].append(opt.nn_timer.metrics)
+            results['nn_errors'].append(opt.nn_errors.metrics)
+
         yield run
 
     # Get results and save
@@ -224,7 +231,9 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
         pd.DataFrame(results['fitness']).to_csv(out_path/f'{experiment_name}_fitness.csv', index=False)
         pd.DataFrame(results['sumcv']).to_csv(out_path/f'{experiment_name}_sumcv.csv', index=False)
         pd.DataFrame(results['arr']).to_csv(out_path/f'{experiment_name}_arr.csv', index=False)
-        if is_nn: pd.DataFrame(results['nn_time']).to_csv(out_path/f'{experiment_name}_nn_time.csv', index=False)
+        if is_nn:
+            pd.DataFrame(results['nn_time']).to_csv(out_path/f'{experiment_name}_nn_time.csv', index=False)
+            pd.DataFrame(results['nn_errors']).to_csv(out_path/f'{experiment_name}_nn_errors.csv', index=False)
 
 if __name__ == '__main__':
     fire.Fire(main)

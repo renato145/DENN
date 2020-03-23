@@ -158,6 +158,7 @@ class Optimization:
     time_change_pcts:Collection[float]=(0.0,0.5)
     callbacks:Optional[Collection[Callback]]=None
     metrics:Optional[Collection[Metric]]=None
+    optimal_positions:Optional[np.ndarray]=None
     optimal_fitness_values:Optional[Collection[float]]=None
     optimal_sum_constraints:Optional[Collection[float]]=None
     evolve_mechanism:EvolveMechanism=EvolveMechanism.Normal
