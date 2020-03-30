@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import nn
 
 Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
-Method = Enum('Method', 'noNNRestart noNN NNnorm NNdrop NNtime')
+Method = Enum('Method', 'noNNRestart noNN NNnorm NNdrop NNtime NNconv')
 FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
 DiversityMethod = Enum('DiversityMethod', 'RI Cw Cwc CwN CwcN HMuPure HMu ')
 
@@ -45,6 +45,24 @@ class TimeModel(nn.Module):
         embs = self.emb(time.repeat(x.size(0)).float()[:,None])
         fts = torch.cat([self.fc1(x[:,i]) for i in range(x.size(1))]+[embs], dim=1)
         return self.fc2(self.act(fts))
+
+class ConvModel(nn.Module):
+    def __init__(self, d, w, nf=4, ks=3, n_conv=3):
+        super().__init__()
+        convs = []
+        for i in range(n_conv):
+            convs += [nn.Conv1d(d if i==0 else nf, nf if i==0 else nf*2, kernel_size=ks),
+                      nn.ReLU(inplace=True)]
+            if i > 0: nf *= 2
+
+        self.convs = nn.Sequential(*convs)
+        self.pool = nn.AdaptiveMaxPool1d(1)
+        self.linear = nn.Linear(nf, d)
+        
+    def forward(self, x):
+        out = self.convs(x.permute(0,2,1))
+        out = self.pool(out).squeeze(2)
+        self.linear(out)
 
 def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[Callable]:
     if func_name==FuncName.sphere:
@@ -86,7 +104,7 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
-    is_nn = method_type in [Method.NNnorm, Method.NNdrop, Method.NNtime]
+    is_nn = method_type in [Method.NNnorm, Method.NNdrop, Method.NNtime, Method.NNconv]
     func_type = getattr(FuncName, func_name)
     scale_factor = getattr(ScaleFactor, scale_factor) #ScaleFactor[scale_factor]
     total_generations = int(max_times * frequency * 1_000_000 + 1_000)
@@ -169,8 +187,12 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
                                      train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs)
             if method_type==Method.NNdrop:
                 model = DropoutModel(d=D, w=nn_window, nf=nn_nf, dropout=dropout) 
-                nn_trainer = partial(NNTrainerNoNoise  , model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
+                nn_trainer = partial(NNTrainerNoNoise, model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
                                      train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs)
+            if method_type==Method.NNconv:
+                model = ConvModel(d=D, w=nn_window, nf=16, ks=3, n_conv=3) 
+                nn_trainer = partial(NNTrainer, model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
+                                     train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs, cuda=True)
             
             callbacks.append(nn_trainer)
         elif method_type==Method.noNNRestart:
