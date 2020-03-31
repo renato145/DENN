@@ -62,7 +62,7 @@ class ConvModel(nn.Module):
     def forward(self, x):
         out = self.convs(x.permute(0,2,1))
         out = self.pool(out).squeeze(2)
-        self.linear(out)
+        return self.linear(out)
 
 def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[Callable]:
     if func_name==FuncName.sphere:
