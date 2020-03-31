@@ -6,9 +6,9 @@ import torch.nn.functional as F
 from torch import nn
 
 Experiment = Enum('Experiment', 'exp1 exp2 exp3 exp4')
-Method = Enum('Method', 'noNNRestart noNN NNnorm NNdrop NNtime NNconv')
+Method = Enum('Method', 'noNN NNnorm NNdrop NNtime NNconv')
 FuncName = Enum('FuncName', 'sphere rastrigin ackley rosenbrock')
-DiversityMethod = Enum('DiversityMethod', 'RI Cw Cwc CwN CwcN HMuPure HMu ')
+DiversityMethod = Enum('DiversityMethod', 'RI Cw Cwc CwN CwcN HMuPure HMu Rst')
 
 class DropoutModel(nn.Module):
     def __init__(self, d:int, w:int, nf:int, dropout:float=0.5):
@@ -195,8 +195,6 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
                                      train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs, cuda=True)
             
             callbacks.append(nn_trainer)
-        elif method_type==Method.noNNRestart:
-            callbacks.append(OnChangeRestartPopulation)
 
         # Setting diversity method
         if diversity_method is None:
@@ -219,6 +217,8 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
             evolve_mechanism = EvolveMechanism.Normal
             callbacks.append(Hypermutation)
             callbacks.append(RandomImmigrantsOnChange)
+        elif diversity_method == DiversityMethod.Rst:
+            callbacks.append(OnChangeRestartPopulation)
         else: raise Exception(f'Invalid diversity method: {diversity_method}.')
 
         #first pop created here and passed to optimization
