@@ -11,12 +11,12 @@ lines = []
 
 # sbatch --export=ALL,experiment="exp1",func_name="sphere",method="noNN",frequency=1,frequency_save=1,diversity_method=None,save="True",pbar="False",silent="True",cluster="True"
 	# for sample_size in [1,3,7,9]:	
-for diversity_method in ['HMu','RI','CwN', 'None']:#'RI','Cw', 'None', 'Cwc', 'CwN', CwcN', 'None', 'CwN'
+for diversity_method in ['Rst']:#'RI','Cw', 'None', 'Cwc', 'CwN', CwcN', 'None', 'CwN'
 	for freq in [0.5,1,4,10,20]:	
 		for replace_mech in ['Worst']: #'Random',
 			for exp in ['exp1','exp2','exp3','exp4']: #'exp1','exp2','exp3',
 				for func in ['sphere','rosenbrock','rastrigin']:
-					lines.append(f'''sbatch --export=ALL,experiment="{exp}",func_name="{func}",method="NNconv",frequency="{freq}",frequency_save="{freq}",diversity_method="{diversity_method}",scale_factor="Random",save="True",pbar="False",silent="False",cluster="True",replace_mech={replace_mech},nn_window=12,nn_nf=4,nn_pick=3,nn_sample_size=3,nn_epochs=3,nn_train_window=5,batch_size=4 cluster_job_nn_gpu.sh\n''')
+					lines.append(f'''sbatch --export=ALL,experiment="{exp}",func_name="{func}",method="NNnorm",frequency="{freq}",frequency_save="{freq}",diversity_method="{diversity_method}",scale_factor="Random",save="True",pbar="False",silent="False",cluster="True",replace_mech={replace_mech},nn_window=5,nn_nf=4,nn_pick=3,nn_sample_size=3,nn_epochs=3,nn_train_window=5,batch_size=4 cluster_job_nn.sh\n''')
 with open(out_file, 'w') as f: f.writelines(lines)
 
 print('Done!')
