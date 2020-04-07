@@ -218,6 +218,7 @@ D:int=30, runs:int=30, max_times:int=100, dropout:float=0.5):
             callbacks.append(Hypermutation)
             callbacks.append(RandomImmigrantsOnChange)
         elif diversity_method == DiversityMethod.Rst:
+            evolve_mechanism = EvolveMechanism.Normal
             callbacks.append(OnChangeRestartPopulation)
         else: raise Exception(f'Invalid diversity method: {diversity_method}.')
 
