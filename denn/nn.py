@@ -195,7 +195,7 @@ class NNTrainerTime(NNTrainer):
     def __init__(self, optim:'Optimization', model:nn.Module, replace_mechanism:ReplaceMechanism=ReplaceMechanism.Random, n:int=3, noise_range:float=0.5,
                  sample_size:int=1, window:int=5, min_batches:int=20, train_window:Optional[int]=None, bs:int=4, epochs:int=10,
                  loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam,
-                 sampling_method:SamplingMethod=SamplingMethod.Limit, sampling_limit:int=32, cuda:bool=False):
+                 sampling_method:SamplingMethod=SamplingMethod.Limit, sampling_limit:int=128, cuda:bool=False):
         super().__init__(optim, model=model, replace_mechanism=replace_mechanism, n=n, noise_range=noise_range,
                  sample_size=sample_size, window=window, min_batches=min_batches, train_window=train_window, bs=bs, epochs=epochs,
                  loss_func=loss_func, nn_optim=nn_optim, sampling_method=sampling_method, sampling_limit=sampling_limit, cuda=cuda)
