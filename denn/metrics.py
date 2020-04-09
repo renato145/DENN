@@ -68,11 +68,13 @@ class OfflineError(Metric):
         super().__init__(optim)
         self.metrics = 0.0
 
-    def on_gen_end(self, best:'Individual', time:int, max_time_reached:bool, **kwargs:Any)->None:
-        if not max_time_reached: self.metrics += np.abs(self.optimal_fitness(time) - best.fitness_value)
+    def on_gen_end(self, best:'Individual', gen:int, time:int, max_time_reached:bool, **kwargs:Any)->None:
+        if time==10:self.gen_remain=gen
+        if (time>10) and (not max_time_reached): self.metrics += np.abs(self.optimal_fitness(time) - best.fitness_value)
+        
 
     def on_run_end(self, gen:int, **kwargs:Any)->None:
-        self.metrics /= gen
+        self.metrics /= (gen-self.gen_remain)
 
 class ModifiedOfflineError(OfflineError):
     def __init__(self, optim:'Optimization'):
@@ -80,10 +82,14 @@ class ModifiedOfflineError(OfflineError):
          current best is not feasible.'''
         super().__init__(optim)
 
-    def on_gen_end(self, best:'Individual', time:int, max_time_reached:bool, **kwargs:Any)->None:
-        if not max_time_reached:
+    def on_gen_end(self, best:'Individual', gen:int, time:int, max_time_reached:bool, **kwargs:Any)->None:
+        if time==10:self.gen_remain=gen
+        if (time>10) and (not max_time_reached):
             if best.is_feasible: self.metrics += np.abs(self.optimal_fitness(time) - best.fitness_value)
             else               : self.metrics += np.abs(self.optimal_fitness(time) - self.get_worse().fitness_value)
+
+    def on_run_end(self, gen:int, **kwargs:Any)->None:
+        self.metrics /= (gen-self.gen_remain)
 
 class AbsoluteRecoverRate(Metric):
     def __init__(self, optim:'optimization'):
