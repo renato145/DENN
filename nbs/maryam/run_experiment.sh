@@ -5,7 +5,7 @@
 # ~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 NNnorm Worst --D 30 --runs 30 --frequency 1000 --max_times 100 --nn_window 5 --nn_nf 4 --nn_pick 3
 
 #exp1
-~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 sphere --method NNnorm --replace_mech Random --diversity_method Rst --runs 1 --frequency 10 --nn_window 5 --nn_train_window 1 --nn_pick 3 --nn_sample_size 3 --nn_epochs 3 --batch_size 4 --freq_save=10
+~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 sphere --method noNN --replace_mech Worst --diversity_method Rst --runs 1 --frequency 4 --nn_window 5 --nn_train_window 1 --nn_pick 5 --nn_sample_size 3 --nn_epochs 3 --batch_size 4 --freq_save=4
 #~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 noNNRestart  --runs 30 --frequency 1200
 #~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 rosenbrock NNnorm  Worst --runs 20 --frequency 1000
 #~/anaconda3/envs/DENN/bin/python run_experiment.py exp1 rosenbrock NNdrop  Worst --runs 20 --frequency 1000S

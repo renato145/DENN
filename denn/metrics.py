@@ -71,8 +71,8 @@ class OfflineError(Metric):
     def on_gen_end(self, best:'Individual', time:int, max_time_reached:bool, **kwargs:Any)->None:
         if not max_time_reached: self.metrics += np.abs(self.optimal_fitness(time) - best.fitness_value)
 
-    def on_run_end(self, evals:int, **kwargs:Any)->None:
-        self.metrics /= evals
+    def on_run_end(self, gen:int, **kwargs:Any)->None:
+        self.metrics /= gen
 
 class ModifiedOfflineError(OfflineError):
     def __init__(self, optim:'Optimization'):
