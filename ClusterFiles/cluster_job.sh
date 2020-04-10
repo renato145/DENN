@@ -2,7 +2,7 @@
 #SBATCH -p skylake # partition (this is the queue your job will be added to)
 #SBATCH -N 1 # number of nodes (use a single node)
 #SBATCH -n 1 # number of cores (sequential job uses 1 core)
-#SBATCH --time=20:00:00 # time allocation, which has the format (D-HH:MM:SS), here set to 1 hour
+#SBATCH --time=35:00:00 # time allocation, which has the format (D-HH:MM:SS), here set to 1 hour
 #SBATCH --mem=4GB # memory pool for all cores (here set to 4 GB)
 
 # Notification configuration
