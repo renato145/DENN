@@ -47,7 +47,7 @@ class TimeModel(nn.Module):
         return self.fc2(self.act(fts))
 
 class ConvModel(nn.Module):
-    def __init__(self, d, w, nf=4, ks=3, n_conv=3):
+    def __init__(self, d, w, nf=4, ks=3, n_conv=2):
         super().__init__()
         convs = []
         for i in range(n_conv):
@@ -192,7 +192,7 @@ D:int=30, runs:int=10, max_times:int=100, dropout:float=0.5):
             if method_type==Method.NNconv:
                 model = ConvModel(d=D, w=nn_window, nf=16, ks=3, n_conv=3) 
                 nn_trainer = partial(NNTrainer, model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
-                                     train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs, cuda=True)
+                                     train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs, cuda=False)#cuda was true
             
             callbacks.append(nn_trainer)
 
