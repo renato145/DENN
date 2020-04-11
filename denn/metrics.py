@@ -2,7 +2,8 @@ from .imports import *
 from .callbacks import *
 from .utils import *
 
-__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'OfflineError', 'ModifiedOfflineError', 'AbsoluteRecoverRate', 'NNTimer', 'NNErrors']
+__all__ = ['get_metrics', 'Metric', 'SpeedMetric', 'OfflineError', 'ModifiedOfflineError', 'AbsoluteRecoverRate',
+           'NNTimer', 'NNErrors', 'FirstDistance']
 
 def get_metrics(metrics:Optional[Collection['Metric']])->Collection[Optional['Metric']]:
     metrics = listify(metrics)
@@ -154,3 +155,22 @@ class NNErrors(Metric):
         'Records the errors of predicted values by the neural network.'
         super().__init__(optim)
         self.metrics = []
+
+class FirstDistance(Metric):
+    def __init__(self, optim:'Optimization'):
+        '''Records the euclidean distances between the best individual after the first generation
+           vs the optimal solution, for each time.'''
+        super().__init__(optim)
+        self.metrics = []
+        self.do_record_metric = False
+
+    def on_detect_change_end(self, change_detected:bool, **kwargs:Any)->None:
+        if change_detected: self.do_record_metric = True
+
+    def on_gen_end(self, best:'Individual', time:int, max_time_reached:bool, **kwargs:Any)->None:
+        if max_time_reached: return
+        if self.do_record_metric:
+            this_best = self.optim.optimal_positions[time]
+            error = np.linalg.norm(best.data - this_best)
+            self.metrics.append(error)
+            self.do_record_metric = False

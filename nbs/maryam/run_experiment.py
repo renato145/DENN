@@ -100,7 +100,7 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
 def main(experiment:str, func_name:str, method:str, frequency:int=1, freq_save:int=1, diversity_method:Optional[str]=None,
 scale_factor:str='Random', save:bool=True, pbar:bool=True, silent:bool=True,  cluster:bool=False, replace_mech:Optional[str]=None,
 nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, nn_epochs:int=10, nn_train_window:Optional[int]=None, batch_size:int=4,
-D:int=30, runs:int=20, max_times:int=100, dropout:float=0.5):
+D:int=30, runs:int=10, max_times:int=100, dropout:float=0.5):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
@@ -169,7 +169,7 @@ D:int=30, runs:int=20, max_times:int=100, dropout:float=0.5):
         best_known_positions = np.load(f'{experiment}_{func_name}.npy')
 
     # Initialize metrics
-    results = {'mof':[], 'sr':[], 'nfe':[], 'fitness':[], 'sumcv':[], 'arr':[], 'nn_errors':[]}
+    results = {'mof':[], 'sr':[], 'nfe':[], 'fitness':[], 'sumcv':[], 'arr':[], 'nn_errors':[], 'distances':[]}
     if is_nn: results['nn_time'] = []
 
     # Run
@@ -201,7 +201,8 @@ D:int=30, runs:int=20, max_times:int=100, dropout:float=0.5):
             evolve_mechanism = EvolveMechanism.Normal
         elif diversity_method == DiversityMethod.RI:
             evolve_mechanism = EvolveMechanism.Normal
-            callbacks.append(RandomImmigrantsOnChange)
+            if is_nn: callbacks.append(partial(RandomImmigrantsOnChange,replacement_rate=2))
+            else    : callbacks.append(partial(RandomImmigrantsOnChange,replacement_rate=7))
         elif diversity_method == DiversityMethod.Cw:
             evolve_mechanism = EvolveMechanism.Crowding
         elif diversity_method == DiversityMethod.Cwc:
@@ -227,7 +228,7 @@ D:int=30, runs:int=20, max_times:int=100, dropout:float=0.5):
         speed_metric = partial(SpeedMetric, threadhold=0.1)
         opt = Optimization(population, fitness_func, constraint_func, fitness_params=ab, constraint_params=[ab],
                            max_times=max_times, frequency=frequency, callbacks=callbacks, beta_min=beta_min, beta_max=beta_max, CR=CR,
-                           metrics=[speed_metric, ModifiedOfflineError, OfflineError, AbsoluteRecoverRate],
+                           metrics=[speed_metric, ModifiedOfflineError, OfflineError, AbsoluteRecoverRate, FirstDistance],
                            optimal_fitness_values=best_known_fitness, optimal_sum_constraints=best_known_sumcv,
                            optimal_positions=best_known_positions,
                            evolve_mechanism=evolve_mechanism)
@@ -237,9 +238,10 @@ D:int=30, runs:int=20, max_times:int=100, dropout:float=0.5):
         results['mof'].append(opt.modified_offline_error.metrics)
         results['arr'].append(opt.absolute_recover_rate.metrics)
         results['sr'].append(opt.speed_metric.metrics)
-        results['nfe'].append(opt.speed_metric.speeds)
+        # results['nfe'].append(opt.speed_metric.speeds)
         results['fitness'].append(opt.recorder.best_times_fitness)
         results['sumcv'].append(opt.recorder.best_times_constraints)
+        results['distances'].append(opt.first_distance.metrics)
         if is_nn:
             results['nn_time'].append(opt.nn_timer.metrics)
             results['nn_errors'].append(opt.nn_errors.metrics)
@@ -250,9 +252,10 @@ D:int=30, runs:int=20, max_times:int=100, dropout:float=0.5):
     if save:
         pd.DataFrame({'mof':results['mof']}).to_csv(out_path/f'{experiment_name}_mof.csv', index=False)
         pd.DataFrame({'sr':results['sr']}).to_csv(out_path/f'{experiment_name}_sr.csv', index=False)
-        pd.DataFrame(results['nfe']).to_csv(out_path/f'{experiment_name}_nfe.csv', index=False)
+        # pd.DataFrame(results['nfe']).to_csv(out_path/f'{experiment_name}_nfe.csv', index=False)
         pd.DataFrame(results['fitness']).to_csv(out_path/f'{experiment_name}_fitness.csv', index=False)
         pd.DataFrame(results['sumcv']).to_csv(out_path/f'{experiment_name}_sumcv.csv', index=False)
+        pd.DataFrame(results['distances']).to_csv(out_path/f'{experiment_name}_dis.csv', index=False)
         pd.DataFrame(results['arr']).to_csv(out_path/f'{experiment_name}_arr.csv', index=False)
         if is_nn:
             pd.DataFrame(results['nn_time']).to_csv(out_path/f'{experiment_name}_nn_time.csv', index=False)

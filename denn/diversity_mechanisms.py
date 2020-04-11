@@ -10,7 +10,7 @@ class OnChangeRestartPopulation(Callback):
         if change_detected: self.optim.population.refresh()
 
 class RandomImmigrants(Callback):
-    def __init__(self, optim:'Optimization', replacement_rate:int=3):
+    def __init__(self, optim:'Optimization', replacement_rate:int=5):
         'http://www.gardeux-vincent.eu/These/Papiers/Bibli1/Grefenstette92.pdf'
         super().__init__(optim)
         self.replacement_rate = replacement_rate
@@ -22,7 +22,7 @@ class RandomImmigrants(Callback):
 class RandomImmigrantsOnChange(Callback):
     _order = 10 # Needs to run after `NNTrainer`
 
-    def __init__(self, optim:'Optimization', replacement_rate:int=3):
+    def __init__(self, optim:'Optimization', replacement_rate:int=5):
         '''
         Modification on the original version to apply only when changes are detected.
         http://www.gardeux-vincent.eu/These/Papiers/Bibli1/Grefenstette92.pdf
