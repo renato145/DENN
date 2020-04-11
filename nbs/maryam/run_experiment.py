@@ -192,7 +192,7 @@ D:int=30, runs:int=5, max_times:int=100, dropout:float=0.5):
             if method_type==Method.NNconv:
                 model = ConvModel(d=D, w=nn_window, nf=16, ks=3, n_conv=3) 
                 nn_trainer = partial(NNTrainer, model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
-                                     train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs, cuda=False)#cuda was true
+                                     train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs, cuda=True)#cuda was true
             
             callbacks.append(nn_trainer)
 
