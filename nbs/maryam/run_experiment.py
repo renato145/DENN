@@ -100,7 +100,7 @@ def get_functions(experiment:Experiment, D:int, func_name:FuncName)->Collection[
 def main(experiment:str, func_name:str, method:str, frequency:int=1, freq_save:int=1, diversity_method:Optional[str]=None,
 scale_factor:str='Random', save:bool=True, pbar:bool=True, silent:bool=True,  cluster:bool=False, replace_mech:Optional[str]=None,
 nn_window:int=5, nn_nf:int=4, nn_pick:int=3, nn_sample_size:int=1, nn_epochs:int=10, nn_train_window:Optional[int]=None, batch_size:int=4,
-D:int=30, runs:int=10, max_times:int=100, dropout:float=0.5):
+D:int=30, runs:int=5, max_times:int=100, dropout:float=0.5):
     # Setting variables
     experiment_type = getattr(Experiment, experiment)
     method_type = getattr(Method, method)
@@ -192,7 +192,7 @@ D:int=30, runs:int=10, max_times:int=100, dropout:float=0.5):
             if method_type==Method.NNconv:
                 model = ConvModel(d=D, w=nn_window, nf=16, ks=3, n_conv=3) 
                 nn_trainer = partial(NNTrainer, model=model, n=nn_pick, sample_size=nn_sample_size, window=nn_window,
-                                     train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs, cuda=False)#cuda was true
+                                     train_window=nn_train_window, replace_mechanism=replace_type, bs=batch_size, epochs=nn_epochs, cuda=True)#cuda was true
             
             callbacks.append(nn_trainer)
 
@@ -217,7 +217,8 @@ D:int=30, runs:int=10, max_times:int=100, dropout:float=0.5):
         elif diversity_method == DiversityMethod.HMu:
             evolve_mechanism = EvolveMechanism.Normal
             callbacks.append(Hypermutation)
-            callbacks.append(RandomImmigrantsOnChange)
+            if is_nn: callbacks.append(partial(RandomImmigrantsOnChange,replacement_rate=2))
+            else    : callbacks.append(partial(RandomImmigrantsOnChange,replacement_rate=7))
         elif diversity_method == DiversityMethod.Rst:
             evolve_mechanism = EvolveMechanism.Normal
             callbacks.append(OnChangeRestartPopulation)
