@@ -13,7 +13,7 @@ lines = []
 # for replace_mech in ['Random','Worst']:
 	# for sample_size in [1,3,7,9]: noNNRestart
 for freq in [20]:	
-	for diversity_method in ['RI', 'None', 'HMu','Rst']:#'RI', 'None', 'CwN', 'HMu'
+	for diversity_method in ['None','Rst']:#'RI', 'None', 'CwN', 'HMu'
 		for exp in ['exp1','exp2','exp3','exp4']:
 			for func in ['sphere','rosenbrock','rastrigin']:
 				# train_window = None if sample_size==1 else 5
