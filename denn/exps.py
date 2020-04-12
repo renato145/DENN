@@ -2,8 +2,8 @@ from .imports import *
 
 __all__ = ['get_data', 'get_heatmap_data','PATH_RESULTS','labels_order']
 
-labels_order = ['noNN_RI', 'NN_RI','noNN_HMu', 'NN_HMu', 'noNN_CwN', 'NN_CwN', 'noNN_No', 
-                 'NN_No','noNN_Rst', 'NN_Rst']
+labels_order = ['noNN_RI', 'NN_RI','noNN_HMu', 'NN_HMu',  'noNN_No', 
+                 'NN_No','noNN_Rst', 'NN_Rst'] #'noNN_CwN', 'NN_CwN',
 PATH_RESULTS = Path(f'../../data/cluster_results')
 pat = re.compile('.*/(exp\d)/(\w*)/nonn/freq([0-9\.]+)div(\w+)/(\w+)_\w+.csv')
 decode_keys = ['experiment','function','freq','div','method']
@@ -45,11 +45,11 @@ def get_data(m, normalize=False):
     nonn_data = pd.concat([read_csv(f,m) for f in files])
     data = pd.concat([nn_data , nonn_data])
     if normalize:
-        data_norm = (data.groupby(['experiment','function','freq','method'])[m.upper()].mean().reset_index()
-                        .groupby(['experiment','function'])[m.upper()].min().reset_index()
-                        .rename({m.upper():m.upper()+'_norm'}, axis=1))
+        data_norm = (data.groupby(['experiment','function','freq','method'])[m].mean().reset_index()
+                        .groupby(['experiment','function'])[m].min().reset_index()
+                         .rename({m:m+'_norm'}, axis=1))
         data = data.merge(data_norm, 'left')
-        data[m.upper()+'_norm'] = data[m.upper()] / data[m.upper()+'_norm']
+        data[m+'_norm'] = data[m] / data[m+'_norm']
     
     return data.reset_index(drop=True)
 
