@@ -12,7 +12,7 @@ lines = []
 # sbatch --export=ALL,experiment="exp1",func_name="sphere",method="noNN",frequency=1,frequency_save=1,diversity_method=None,save="True",pbar="False",silent="True",cluster="True"
 # for replace_mech in ['Random','Worst']:
 	# for sample_size in [1,3,7,9]: noNNRestart
-for freq in [10,40]:	
+for freq in [50]:	
 	for diversity_method in ['None','Rst', 'HMu','RI']:#'RI', 'None', 'CwN', 'HMu'
 		for exp in ['exp1','exp2','exp3','exp4']:
 			for func in ['sphere','rosenbrock','rastrigin']:
