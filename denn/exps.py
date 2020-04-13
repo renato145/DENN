@@ -13,9 +13,9 @@ nn_decode_keys = ['experiment','function','freq','nnw','nnp','nntw','div','metho
 def get_files(m): return list(PATH_RESULTS.glob(f'**/nonn/**/*{m}.csv'))
 def get_nn_files(m): return list(PATH_RESULTS.glob(f'**/nn/**/*{m}.csv'))
 
-def read_csv(f,m):
+def read_csv(f,m, getMean=True):
     df = pd.read_csv(f)
-    df = df.mean().to_frame().T
+    if getMean: df = df.mean().to_frame().T
     for k,v in zip(decode_keys,pat.search(str(f)).groups()): df[k] = v
     df['freq'] = df['freq'].astype(float)
     df['method'] = df['method'] + '_' + df['div']
@@ -23,9 +23,9 @@ def read_csv(f,m):
     df['isnn']=False
     return df
 
-def read_nn_csv(f,m):
+def read_nn_csv(f,m, getMean=True):
     df = pd.read_csv(f)
-    df = df.mean().to_frame().T
+    if getMean: df = df.mean().to_frame().T
     for k,v in zip(nn_decode_keys,nn_pat.search(str(f)).groups()): df[k] = v
     df['freq'] = df['freq'].astype(float)
     df['method'] = df['method'] + '_' + df['replace_mech'] + '_' + df['div']
@@ -35,15 +35,18 @@ def read_nn_csv(f,m):
     df.drop(['replace_mech','div'], axis=1, inplace=True)
     return df
 
-def get_data(m, normalize=False):
+def get_data(m, normalize=False, isnn = False, krus=False):
     '''
     - m: the performance measure.
     '''
-    files = get_files(m)
+    getMean = True
+    if krus: getMean = False
+    if not isnn: files = get_files(m)
     nn_files = get_nn_files(m)
-    nn_data = pd.concat([read_nn_csv(f,m) for f in nn_files])
-    nonn_data = pd.concat([read_csv(f,m) for f in files])
-    data = pd.concat([nn_data , nonn_data])
+    nn_data = pd.concat([read_nn_csv(f,m, getMean) for f in nn_files])
+    if not isnn: nonn_data = pd.concat([read_csv(f,m, getMean) for f in files])
+    if not isnn: data = pd.concat([nn_data , nonn_data])
+    else       : data = nn_data
     if normalize:
         data_norm = (data.groupby(['experiment','function','freq','method'])[m].mean().reset_index()
                         .groupby(['experiment','function'])[m].min().reset_index()
