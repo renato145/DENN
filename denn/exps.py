@@ -3,7 +3,7 @@ from .imports import *
 __all__ = ['get_data', 'get_heatmap_data','PATH_RESULTS','labels_order']
 
 labels_order = ['noNN_RI', 'NN_RI','noNN_HMu', 'NN_HMu',  'noNN_No', 
-                 'NN_No','noNN_Rst', 'NN_Rst'] #'noNN_CwN', 'NN_CwN',
+                 'NN_No','noNN_CwN', 'NN_CwN','noNN_Rst', 'NN_Rst'] #
 PATH_RESULTS = Path(f'../../data/cluster_results')
 pat = re.compile('.*/(exp\d)/(\w*)/nonn/freq([0-9\.]+)div(\w+)/(\w+)_\w+.csv')
 decode_keys = ['experiment','function','freq','div','method']

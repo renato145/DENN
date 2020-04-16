@@ -221,7 +221,9 @@ D:int=30, runs:int=20, max_times:int=100, dropout:float=0.5):
             else    : callbacks.append(partial(RandomImmigrantsOnChange,replacement_rate=7))
         elif diversity_method == DiversityMethod.Rst:
             evolve_mechanism = EvolveMechanism.Normal
-            callbacks.append(OnChangeRestartPopulation)
+            if is_nn: callbacks.append(partial(RandomImmigrantsOnChange,replacement_rate=15))
+            else    : callbacks.append(partial(RandomImmigrantsOnChange,replacement_rate=20))
+            # callbacks.append(OnChangeRestartPopulation)
         else: raise Exception(f'Invalid diversity method: {diversity_method}.')
 
         #first pop created here and passed to optimization
