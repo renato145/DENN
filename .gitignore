@@ -4,6 +4,7 @@ tags
 */.DS_Store
 Icon?
 .vscode/
+# data/cluster_results/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
