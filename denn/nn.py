@@ -30,7 +30,7 @@ class NNTrainer(Callback):
     def __init__(self, optim:'Optimization', model:nn.Module, replace_mechanism:ReplaceMechanism=ReplaceMechanism.Random, n:int=3, noise_range:float=0.5,
                  sample_size:int=1, window:int=5, min_batches:int=20, train_window:Optional[int]=None, bs:int=4, epochs:int=10,
                  loss_func:Callable=nn.MSELoss(), nn_optim:torch.optim.Optimizer=torch.optim.Adam,
-                 sampling_method:SamplingMethod=SamplingMethod.Limit, sampling_limit:int=128, cuda:bool=False):
+                 sampling_method:SamplingMethod=SamplingMethod.Limit, sampling_limit:int=256, cuda:bool=False):#sampling_limit:int=128
         '''Uses neural network to initialize individuals after a change is detected.
         Params:
           - optim: Optimization class.
